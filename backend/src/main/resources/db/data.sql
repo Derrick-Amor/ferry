@@ -21,7 +21,7 @@
 --   以下 8 个账号的登录密码统一为（6 位纯数字）：
 --       123456
 --   对应的 BCrypt 密文（cost=10）：
---       $2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq
+--       $2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq
 --   ⚠ 该口令与密文仅用于本地演示，正式环境请务必通过后端接口重置密码。
 --
 --   | 用户名     | 角色          | 说明                     |
@@ -72,14 +72,14 @@ DELETE FROM `user`;
 INSERT INTO `user`
   (`id`, `username`, `password`, `nickname`, `avatar`, `real_name`, `phone`, `email`, `role`, `status`, `last_login_time`, `create_time`, `update_time`)
 VALUES
-  (1, 'admin',     '$2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq', '管理员',   NULL, '系统管理员', '13800000001', 'admin@ferry.local',     2, 1, '2026-01-21 09:00:00', '2026-01-01 09:00:00', '2026-01-21 09:00:00'),
-  (2, 'teacher01', '$2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq', '张明远',   NULL, '张明远',     '13800000002', 'zhangmingyuan@ferry.local', 1, 1, '2026-01-20 10:20:00', '2026-01-02 09:10:00', '2026-01-20 10:20:00'),
-  (3, 'teacher02', '$2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq', '苏晴',     NULL, '苏晴',       '13800000003', 'suqing@ferry.local',        1, 1, '2026-01-20 14:05:00', '2026-01-02 09:30:00', '2026-01-20 14:05:00'),
-  (4, 'company01', '$2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq', '李文静',   NULL, '李文静',     '13800000004', 'liwenjing@ferry.local',     1, 1, '2026-01-19 16:42:00', '2026-01-03 11:00:00', '2026-01-19 16:42:00'),
-  (5, 'student01', '$2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq', '王思远',   NULL, '王思远',     '13800000005', 'wangsiyuan@ferry.local',    0, 1, '2026-01-21 08:30:00', '2026-01-04 10:00:00', '2026-01-21 08:30:00'),
-  (6, 'student02', '$2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq', '陈雨桐',   NULL, '陈雨桐',     '13800000006', 'chenyutong@ferry.local',    0, 1, '2026-01-20 20:10:00', '2026-01-04 10:15:00', '2026-01-20 20:10:00'),
-  (7, 'student03', '$2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq', '刘子豪',   NULL, '刘子豪',     '13800000007', 'liuzihao@ferry.local',      0, 1, '2026-01-18 19:55:00', '2026-01-05 09:45:00', '2026-01-18 19:55:00'),
-  (8, 'student04', '$2a$10$5l9TC8IIHqV3vqD9xY8UG.5opOf.ZafS7asMNEjdR6jtaWB13hEXq', '赵一诺',   NULL, '赵一诺',     '13800000008', 'zhaoyinuo@ferry.local',     0, 1, NULL,                  '2026-01-06 15:20:00', '2026-01-06 15:20:00');
+  (1, 'admin',     '$2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq', '管理员',   NULL, '系统管理员', '13800000001', 'admin@ferry.local',     2, 1, '2026-01-21 09:00:00', '2026-01-01 09:00:00', '2026-01-21 09:00:00'),
+  (2, 'teacher01', '$2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq', '张明远',   NULL, '张明远',     '13800000002', 'zhangmingyuan@ferry.local', 1, 1, '2026-01-20 10:20:00', '2026-01-02 09:10:00', '2026-01-20 10:20:00'),
+  (3, 'teacher02', '$2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq', '苏晴',     NULL, '苏晴',       '13800000003', 'suqing@ferry.local',        1, 1, '2026-01-20 14:05:00', '2026-01-02 09:30:00', '2026-01-20 14:05:00'),
+  (4, 'company01', '$2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq', '李文静',   NULL, '李文静',     '13800000004', 'liwenjing@ferry.local',     1, 1, '2026-01-19 16:42:00', '2026-01-03 11:00:00', '2026-01-19 16:42:00'),
+  (5, 'student01', '$2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq', '王思远',   NULL, '王思远',     '13800000005', 'wangsiyuan@ferry.local',    0, 1, '2026-01-21 08:30:00', '2026-01-04 10:00:00', '2026-01-21 08:30:00'),
+  (6, 'student02', '$2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq', '陈雨桐',   NULL, '陈雨桐',     '13800000006', 'chenyutong@ferry.local',    0, 1, '2026-01-20 20:10:00', '2026-01-04 10:15:00', '2026-01-20 20:10:00'),
+  (7, 'student03', '$2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq', '刘子豪',   NULL, '刘子豪',     '13800000007', 'liuzihao@ferry.local',      0, 1, '2026-01-18 19:55:00', '2026-01-05 09:45:00', '2026-01-18 19:55:00'),
+  (8, 'student04', '$2a$10$ikA3T1cfDekb5FRIVgVkzOusqC/Bw4YQ4yHD9wO11AoaxPtnCrWQq', '赵一诺',   NULL, '赵一诺',     '13800000008', 'zhaoyinuo@ferry.local',     0, 1, NULL,                  '2026-01-06 15:20:00', '2026-01-06 15:20:00');
 
 -- ---------------------------------------------------------------------------
 -- 2. company 公司表（3 家，供职位模块使用）
