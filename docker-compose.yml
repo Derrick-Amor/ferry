@@ -1,0 +1,134 @@
+# ============================================================================
+# 渡口 Ferry · Docker Compose 编排
+# ----------------------------------------------------------------------------
+# 用法：
+#   cp .env.example .env      # 填写 MYSQL_ROOT_PASSWORD / DB_PASSWORD / JWT_SECRET
+#   docker compose up -d --build
+#   前端 http://localhost:8088
+#
+# 三个服务：mysql（含建表与种子数据初始化） -> backend -> frontend
+#
+# 几个刻意的设计选择，改动前请先读：
+#   1. depends_on 全部带 condition: service_healthy。
+#      普通 depends_on 只保证「启动顺序」，不保证「依赖已就绪」，
+#      后端会在 MySQL 还没准备好时连库失败退出。
+#   2. MySQL 的初始化脚本用「宿主机文件 -> 容器内 01-/02- 命名」的绑定挂载，
+#      而不是复制一份到仓库里。initdb.d 目录是按文件名字典序执行的，
+#      所以目标文件名必须带序号，否则 data.sql 可能先于 schema.sql 执行。
+#   3. 后端用独立账号 ferry 连库，而不是 root。
+#      mysql 官方镜像默认只允许 root 从 localhost 登录，
+#      容器间互连（root@'172.x.x.x'）会被拒绝（Access denied）。
+#   4. 不对外暴露 3306 与 8080：宿主机 3306 通常已被本机 MySQL 占用，
+#      8080 也常被其他项目占用。外部只需访问前端 8088，API 由 Nginx 反代。
+# ============================================================================
+
+name: ferry
+
+services:
+
+  # -------------------------------------------------------------------------
+  # MySQL 8：首次启动时自动执行 schema.sql + data.sql
+  # -------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: ferry-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      # root 仅用于容器内运维与 healthcheck
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+      # 首次启动自动建库
+      MYSQL_DATABASE: ${DB_NAME:-ferry}
+      # 业务账号（自动授予 DB_NAME 库的全部权限），避免后端用 root 连库。
+      # 这里硬编码为 ferry，刻意不读 .env 里的 DB_USER：
+      #   1) .env 的 DB_USER=root 是给「本地手动启动」连宿主机 MySQL 用的；
+      #   2) mysql 官方镜像会显式拒绝 MYSQL_USER=root 并直接退出
+      #      （"MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user
+      #        and cannot be used for the root user"）。
+      MYSQL_USER: ferry
+      MYSQL_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 注意目标文件名前缀：initdb.d 按文件名字典序执行，01 必须在 02 之前
+      - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./backend/src/main/resources/db/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    healthcheck:
+      # $$ 是 compose 的转义，实际传给容器 shell 的是 $MYSQL_ROOT_PASSWORD
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - ferry-net
+
+  # -------------------------------------------------------------------------
+  # 后端：Spring Boot 3 + Java 21
+  # -------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ferry-backend:local
+    container_name: ferry-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        # 等 healthcheck 通过，而不是仅仅「容器已启动」
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-ferry}
+      # 必须与 mysql 服务的 MYSQL_USER 一致，且不能是 root：
+      # mysql 镜像默认只允许 root 从 localhost 登录，跨容器用 root 会被拒绝
+      DB_USER: ferry
+      DB_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
+      JWT_EXPIRE: ${JWT_EXPIRE:-86400}
+      TZ: Asia/Shanghai
+    volumes:
+      # 用户上传的简历落在卷里，容器重建不丢
+      - uploads-data:/app/uploads
+    healthcheck:
+      # /api/course/list 是公开接口，不需要 token，适合做存活探测
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/api/course/list > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      - ferry-net
+
+  # -------------------------------------------------------------------------
+  # 前端：Nginx 托管静态资源 + 反代 /api 与 /uploads
+  # -------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: ferry-frontend:local
+    container_name: ferry-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # 宿主 8088 -> 容器 80，避开常被占用的 8080
+      - "${FRONTEND_PORT:-8088}:80"
+    networks:
+      - ferry-net
+
+volumes:
+  mysql-data:
+    name: ferry-mysql-data
+  uploads-data:
+    name: ferry-uploads
+
+networks:
+  ferry-net:
+    name: ferry-net
+    driver: bridge

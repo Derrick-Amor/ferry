@@ -1,0 +1,27 @@
+# ===== 构建产物 =====
+target/
+*.jar
+*.war
+*.class
+
+# ===== IDE 与系统 =====
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ===== 运行时上传文件（用户简历等，绝不能打进镜像）=====
+uploads/
+
+# ===== 本机配置与密钥 =====
+*.local.properties
+application-local.properties
+application-prod.properties
+.env
+.env.*
+
+# ===== 文档与辅助文件（镜像里用不到）=====
+HELP.md
+*.log
+logs/

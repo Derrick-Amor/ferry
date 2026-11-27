@@ -89,6 +89,38 @@ npm run dev
 
 ---
 
+### 5. 方式二：Docker Compose（一条命令）
+
+上面的 1~4 步是「方式一：本地手动启动」。如果你只是想把项目跑起来看效果，
+不想在本机装 JDK 21 / Maven / Node / MySQL，用方式二即可：
+
+```bash
+# 1) 准备环境变量：填 DB_PASSWORD 与 MYSQL_ROOT_PASSWORD，JWT_SECRET 可先用示例值
+cp .env.example .env
+
+# 2) 一条命令启动（首次要构建镜像，耗时较长）
+docker compose up -d --build
+
+# 3) 访问前端
+#    http://localhost:8088
+```
+
+几点说明：
+
+- **首次启动 MySQL 会自动执行 `schema.sql` + `data.sql`** 完成建库与灌数，
+  约需 **20-30 秒**。等 `docker compose ps` 里 `ferry-mysql` 变成 `healthy`、
+  `ferry-backend` 也变成 `healthy` 之后再访问前端，否则可能出现空列表。
+- 前端映射到宿主机 **8088**（不是 8080，避开花式冲突）；
+  后端 8080 与 MySQL 3306 **都不对外暴露**，API 由 Nginx 把 `/api`、`/uploads`
+  反代到容器内的 `backend:8080`。
+- 容器与网络/数据卷都带 `ferry-` 前缀（`ferry-mysql`、`ferry-backend`、
+  `ferry-frontend`、`ferry-net`、`ferry-mysql-data`），不会和你机器上
+  其他项目（cpcc、tlias、vote_db 等）冲突。
+- 改了 Java / Vue 代码后执行 `docker compose up -d --build` 重新构建；
+  依赖层有缓存，只改业务代码时通常十几秒完成。
+- 停止：`docker compose down`；**连数据一起清空**（下次启动会重新灌种子数据）：
+  `docker compose down -v`。
+
 ## 测试账号
 
 所有账号口令统一为 `123456`（仅用于本地演示，正式环境请通过接口重置）。
