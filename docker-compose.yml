@@ -6,7 +6,7 @@
 #   docker compose up -d --build
 #   前端 http://localhost:8088
 #
-# 三个服务：mysql（含建表与种子数据初始化） -> backend -> frontend
+# 四个服务：mysql（含建表与种子数据初始化） -> redis（向量库） -> backend -> frontend
 #
 # 几个刻意的设计选择，改动前请先读：
 #   1. depends_on 全部带 condition: service_healthy。
@@ -68,6 +68,38 @@ services:
       - ferry-net
 
   # -------------------------------------------------------------------------
+  # Redis Stack：智能助教的向量库
+  # -------------------------------------------------------------------------
+  # 必须用 redis-stack-server 而不是官方 redis 镜像：
+  # 普通 Redis 没有 RediSearch 模块，FT.CREATE / 向量检索全部不可用
+  # （spring-ai-starter-vector-store-redis 会直接报 unknown command）。
+  # 校验方式：docker exec ferry-redis redis-cli MODULE LIST 应能看到 search。
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: ferry-redis
+    restart: unless-stopped
+    # ⚠ 千万不要在这里覆盖 command。
+    # 该镜像靠 /entrypoint.sh 用 --loadmodule 逐个加载 redisearch / rejson /
+    # redisbloom 等模块；一旦把 command 改成裸 `redis-server`，模块全部不会加载，
+    # 得到一个「看起来正常、但没有 search 模块」的 Redis：
+    #   redis-cli MODULE LIST -> 空
+    #   redis-cli FT._LIST    -> ERR unknown command
+    #   后端启动时 RedisVectorStore.afterPropertiesSet 直接失败（已实测复现）。
+    # 额外启动参数统一通过 REDIS_ARGS 传，entrypoint 会把它拼到启动命令末尾。
+    environment:
+      REDIS_ARGS: "--maxmemory 512mb --maxmemory-policy allkeys-lru"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - ferry-net
+
+  # -------------------------------------------------------------------------
   # 后端：Spring Boot 3 + Java 21
   # -------------------------------------------------------------------------
   backend:
@@ -81,6 +113,10 @@ services:
       mysql:
         # 等 healthcheck 通过，而不是仅仅「容器已启动」
         condition: service_healthy
+      redis:
+        # 向量库就绪后再启动：initialize-schema=true 会在启动时建索引，
+        # Redis 没起来会直接导致 VectorStore 初始化失败
+        condition: service_healthy
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
@@ -91,6 +127,11 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 中设置 MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
       JWT_EXPIRE: ${JWT_EXPIRE:-86400}
+      # 向量库地址（容器内走服务名，不经过宿主机）
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      # 大模型密钥（硅基流动），缺省为空时应用仍可启动，只是问答接口不可用
+      SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
       TZ: Asia/Shanghai
     volumes:
       # 用户上传的简历落在卷里，容器重建不丢
@@ -129,6 +170,9 @@ volumes:
     name: ferry-mysql-data
   uploads-data:
     name: ferry-uploads
+  # Redis 持久化：向量索引可重建（重灌数据即可），但保留 RDB 能避免每次重启都重算 embedding
+  redis-data:
+    name: ferry-redis-data
 
 networks:
   ferry-net:

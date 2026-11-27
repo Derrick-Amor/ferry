@@ -37,6 +37,8 @@ SET NAMES utf8mb4;
 -- ---------------------------------------------------------------------------
 -- 清理：按“子表 -> 父表”的顺序删除，保证可重复执行
 -- ---------------------------------------------------------------------------
+DROP TABLE IF EXISTS `knowledge_chunk`;
+DROP TABLE IF EXISTS `knowledge_doc`;
 DROP TABLE IF EXISTS `ai_interview`;
 DROP TABLE IF EXISTS `apply`;
 DROP TABLE IF EXISTS `study_record`;
@@ -377,6 +379,56 @@ CREATE TABLE `ai_interview` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI面试表';
 
 -- ============================================================================
--- Schema 结束：共 15 张表、23 个外键约束、23 个 CHECK 约束
+-- 以下两张表服务于「智能助教」RAG 检索（S2 引入）
+-- 说明：分块原文存 MySQL（可审计、可重建），向量存 Redis Stack（RediSearch），
+--      两边通过 knowledge_chunk.vector_id 关联。
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 16. knowledge_doc 知识文档元数据表
+--     一条记录对应「一份可检索的资料」：课程章节正文、职位描述或上传文档
+-- ---------------------------------------------------------------------------
+CREATE TABLE `knowledge_doc` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '文档ID',
+  `title` varchar(200) NOT NULL COMMENT '文档标题',
+  `source_type` tinyint NOT NULL COMMENT '来源:1课程章节 2职位描述 3上传文档',
+  `course_id` bigint unsigned DEFAULT NULL COMMENT '关联课程ID,可空',
+  `chapter_id` bigint unsigned DEFAULT NULL COMMENT '关联章节ID,可空',
+  `content_hash` char(64) DEFAULT NULL COMMENT '内容SHA-256,用于判断是否需要重建索引',
+  `chunk_count` int NOT NULL DEFAULT '0' COMMENT '分块数量',
+  `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态:0禁用 1启用',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_knowledge_doc_course` (`course_id`),
+  KEY `idx_knowledge_doc_chapter` (`chapter_id`),
+  KEY `idx_knowledge_doc_source` (`source_type`),
+  KEY `idx_knowledge_doc_hash` (`content_hash`),
+  CONSTRAINT `chk_knowledge_doc_source_type` CHECK (`source_type` in (1,2,3)),
+  CONSTRAINT `chk_knowledge_doc_status` CHECK (`status` in (0,1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='知识文档元数据表';
+
+-- ---------------------------------------------------------------------------
+-- 17. knowledge_chunk 知识分块表（依赖 knowledge_doc）
+--     一块对应向量库中的一条向量，chunk_no 从 0 开始
+-- ---------------------------------------------------------------------------
+CREATE TABLE `knowledge_chunk` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '分块ID',
+  `doc_id` bigint unsigned NOT NULL COMMENT '文档ID',
+  `chunk_no` int NOT NULL COMMENT '块序号,从0开始',
+  `content` text NOT NULL COMMENT '块原文',
+  `token_count` int DEFAULT NULL COMMENT '估算token数',
+  `vector_id` varchar(64) DEFAULT NULL COMMENT '向量库中的ID,便于反查',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_doc_chunk` (`doc_id`,`chunk_no`),
+  KEY `idx_doc_id` (`doc_id`),
+  KEY `idx_knowledge_chunk_vector` (`vector_id`),
+  CONSTRAINT `fk_chunk_doc` FOREIGN KEY (`doc_id`) REFERENCES `knowledge_doc` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chk_knowledge_chunk_no` CHECK (`chunk_no` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='知识分块表';
+
+-- ============================================================================
+-- Schema 结束：共 17 张表、24 个外键约束、26 个 CHECK 约束
 -- 下一步：执行 data.sql 灌入演示数据
 -- ============================================================================

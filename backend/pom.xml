@@ -20,6 +20,26 @@
 		<java.version>21</java.version>
 	</properties>
 
+	<!--
+	  Spring AI 1.0.0 (GA) 的依赖版本统一由 BOM 管理。
+	  注意：1.0 GA 起坐标全部改名，网上教程常见的
+	  spring-ai-openai-spring-boot-starter / spring-ai-redis-store-spring-boot-starter
+	  在 Maven Central 上已不存在（会报 artifact not found）。
+	  正确的 starter 名是 spring-ai-starter-model-* 与 spring-ai-starter-vector-store-*。
+	  BOM 必须声明在 dependencies 之前，否则下面两个依赖解析不到版本。
+	-->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>1.0.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<!-- web 包含springmvc -->
 		<dependency>
@@ -86,6 +106,16 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<!-- Spring AI：OpenAI 兼容协议接入硅基流动（对话 + 向量） -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-openai</artifactId>
+		</dependency>
+		<!-- Spring AI：Redis 向量库（底层依赖 RediSearch，必须配 Redis Stack） -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-vector-store-redis</artifactId>
 		</dependency>
 	</dependencies>
 
