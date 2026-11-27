@@ -1,0 +1,15 @@
+import request from '@/utils/request'
+
+export const list = params => request.get('/job/list', { params })
+export const detail = id => request.get(`/job/${id}`)
+export const collect = id => request.post(`/job/collect/${id}`)
+export const apply = (id, resumeId) => request.post(`/job/apply/${id}`, null, { params: { resumeId } })
+export const aiInterview = id => request.post(`/job/ai-interview/${id}`)
+export const interviewSubmit = data => request.post('/job/interview/submit', data)
+export const interviewReport = id => request.get(`/job/interview/report/${id}`)
+export const applyList = data => request.post('/job/applyList', data)
+export const offline = (jobId, reason) => request.post('/job/offline', null, { params: { jobId, reason } })
+export const my = () => request.get('/job/my')
+export const myApplications = () => request.get('/job/my/applications')
+export const myApplicants = jobId => request.get(`/job/my/applicants/${jobId}`)
+export const updateApplicantStatus = (applyId, status) => request.put(`/job/my/applicants/${applyId}`, null, { params: { status } })

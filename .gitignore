@@ -1,0 +1,50 @@
+# ===== 依赖与虚拟环境 =====
+node_modules/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# ===== 构建产物 =====
+target/
+dist/
+build/
+*.jar
+*.war
+*.class
+!**/mvn/wrapper/maven-wrapper.jar
+
+# ===== IDE 与系统 =====
+.idea/
+*.iml
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ===== 密钥与本机配置（绝不入库）=====
+.env
+.env.*
+!.env.example
+*.local.properties
+application-local.properties
+application-prod.properties
+
+# ===== 运行时数据 =====
+**/uploads/*
+!**/uploads/.gitkeep
+logs/
+*.log
+
+# ===== 压测原始结果（体积大，仅保留汇总）=====
+test/perf_tests/results/**
+!test/perf_tests/results/summary.md
+!test/perf_tests/results/summary.csv
+
+# ===== 临时目录 =====
+tmp/
+temp/
+.cache/

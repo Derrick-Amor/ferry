@@ -1,0 +1,77 @@
+/* 按钮：发光只在 primary + 焦点态出现 */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 20px; border: 1px solid var(--fern);
+  border-radius: var(--radius); font-size: 15px; cursor: pointer;
+  background: transparent; color: var(--text); transition: .18s;
+}
+.btn:hover { border-color: var(--text-faint); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--firefly); border-color: var(--firefly); color: #ffffff; font-weight: 600;
+}
+.btn-primary:hover { box-shadow: var(--focus-ring); }
+.btn-primary:focus-visible { box-shadow: var(--focus-ring); }
+
+.btn-ghost { border-color: var(--fern); color: var(--text-dim); }
+.btn-ghost:hover { color: var(--text); border-color: var(--text-faint); }
+.btn-danger { border-color: rgba(220,38,38,.35); color: #dc2626; }
+.btn-danger:hover { border-color: #dc2626; color: #b91c1c; }
+.btn-sm { padding: 6px 14px; font-size: 13px; }
+
+/* 表单 */
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.field label { font-size: 13px; color: var(--text-dim); }
+.input, .select, .textarea {
+  width: 100%; padding: 10px 13px; border-radius: var(--radius);
+  border: 1px solid var(--fern); background: var(--moss); color: var(--text);
+  font-size: 14px; outline: none; transition: .18s;
+}
+.input:focus, .select:focus, .textarea:focus { border-color: var(--firefly); box-shadow: var(--focus-ring); }
+.input::placeholder, .textarea::placeholder { color: var(--text-faint); }
+.textarea { min-height: 96px; resize: vertical; }
+select.select option { background: var(--moss); }
+
+/* 表格 */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th, .table td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--fern); }
+.table th { color: var(--text-dim); font-weight: 600; font-size: 13px; }
+.table tr:hover td { background: rgba(139,92,246,.06); }
+
+/* 标签：语义色，色彩克制 */
+.tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+.tag--emerald { background: rgba(22,163,74,.12); color: var(--lichen); }
+.tag--violet  { background: rgba(139,92,246,.12); color: var(--firefly-soft); }
+.tag--amber   { background: rgba(217,119,6,.12); color: #b45309; }
+.tag--rose    { background: rgba(220,38,38,.12); color: #dc2626; }
+.tag--slate   { background: rgba(100,116,139,.14); color: #475569; }
+.tag--info    { background: rgba(2,132,199,.12); color: #0284c7; }
+
+/* 卡片容器（仅作为面板，不做 hover 发光） */
+.panel {
+  background: var(--moss); border: 1px solid var(--fern);
+  border-radius: var(--radius-card); padding: 18px;
+}
+
+/* 布局 */
+.grid { display: grid; gap: 22px; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.flex { display: flex; align-items: center; gap: 12px; }
+.between { justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.mt { margin-top: 26px; }
+@media (max-width: 900px) { .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+.empty { text-align: center; color: var(--text-faint); padding: 60px 0; }
+
+/* 标签式单选：分类/类型选择 */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 6px 15px; border-radius: 999px; border: 1px solid var(--fern);
+  background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; transition: .18s;
+}
+.chip:hover { color: var(--text); border-color: var(--text-faint); }
+.chip.active { background: var(--firefly); border-color: var(--firefly); color: #fff; }
