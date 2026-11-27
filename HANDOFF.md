@@ -28,7 +28,7 @@
 | S1-B | 8 个 Service 接口化（51 个方法） | ✅ 已推送 |
 | S1-C | Docker 三服务编排 + 品牌统一 | ✅ 已推送并实地跑通 |
 | S2-A | Redis Stack + Spring AI + 知识库两张表 | ✅ 已推送 |
-| S2-B | 37 章正文生成 + 分块向量化入库 | 🚧 进行中 |
+| S2-B | 37 章正文生成 + 分块向量化入库（**165 块**） | ✅ 已推送 |
 | S2-C | 问答链路（检索→重排→生成→引用）+ 前端 | ⏳ 待做 |
 | S3 | 模拟面试改造（接 LLM 动态出题） | ⏳ 待做 |
 | S4 | JUnit 单测、慢 SQL、Redis 缓存、压测对比 | ⏳ 待做 |
@@ -37,6 +37,7 @@
 **提交记录**（截至 S2-A）：
 
 ```
+b375fbd feat(rag): 生成 37 章课程正文，完成分块向量化入库
 78df439 feat(rag): 接入 Redis 向量库与 Spring AI，建立知识库表结构
 25d7533 chore(ai): 接入硅基流动，声明 RAG 所需的三类模型配置
 b3b9b36 fix(sql): 修正 data.sql 密码哈希与注释不符的问题
@@ -67,7 +68,8 @@ b9b10f7 chore: 重组为 monorepo 并完成 S0 止血
 | 用途 | 模型 | 实测 |
 |---|---|---|
 | 向量 | `BAAI/bge-m3` | 1024 维，11 tokens/短句 |
-| 对话 | `Qwen/Qwen3-8B` | 中文表达稳定 |
+| 对话 | `XingChenAGI/Xing4.0-29B` | 质量最佳（62s/章）；**推理模型，max_tokens 须 ≥3000** |
+| 对话备选 | `Qwen/Qwen2.5-7B-Instruct` | 快（17s/章），质量略平 |
 | 重排 | `BAAI/bge-reranker-v2-m3` | 「如何学习Java」→ 0.5382(Java) / 0.0001(Vue) / 0.0000(Python) |
 
 平台：**硅基流动主站** `https://api.siliconflow.cn`（不是 TokenPlus）。Key 在 `.env` 的 `SILICONFLOW_API_KEY`，已实名认证。
@@ -141,6 +143,16 @@ S2-A 时发现 `scanBasePackages` 是枚举式白名单，新建包不会被扫�
 
 ---
 
+### 8. Spring AI 的 RedisVectorStore 检索时不回传业务 metadata
+
+写入时 metadata 里有 `docId` / `chunkId` / `title` / `courseId`，Redis 里也确实存着，
+但 `similaritySearch()` 返回的 `Document.getMetadata()` 只有 `distance` 和 `vector_score`，
+业务字段全部读成 null。这是 Spring AI 1.0.0 的实现行为，不是写法问题。
+
+**S2-C 的正确做法**：`Document.getId()` 返回的就是 `chunkId`，
+拿它批量 `IN` 查询 `knowledge_chunk` join `knowledge_doc` 回补标题与文档归属，
+**不要试图从 metadata 里取**。
+
 ## 六、目录结构
 
 ```
@@ -172,11 +184,14 @@ S2-A 时发现 `scanBasePackages` 是枚举式白名单，新建包不会被扫�
 ### 立刻要做（S2-B 收尾 → S2-C）
 
 1. **S2-B 的验收**（工程师正在做）：37 章正文生成、分块、向量化入库、检索质量抽查
-2. **S2-C：问答链路**
-   - `POST /api/assistant/chat`：接收问题 + 可选 courseId → 向量检索 top8 → rerank top4 → 拼 prompt → Qwen3-8B 生成 → 返回 `{answer, citations[]}`
-   - `citations` 每条含 `title / chunkId / docId / score / 内容摘录`
-   - System prompt 必须约束：**只根据提供的资料回答，资料里没有就说"课程中没有相关内容"**
-   - 前端：课程详情页右下角悬浮入口（限定本课程）+ 独立 `/assistant` 页面（全库）
+2. **S2-C：问答链路**（数据已就绪：37 篇文档 / 165 块已入库）
+   - 检索：`similaritySearch(query, 8)` → 拿 `Document.getId()`（= chunkId）
+     → 批量 `IN` 回补 title/docId → rerank top4（`BAAI/bge-reranker-v2-m3`）
+   - 生成：`POST /api/assistant/chat`，返回 `{answer, citations[]}`，
+     citations 每条含 `title / chunkId / docId / score / 摘录`
+   - System prompt 必须约束：**只根据资料回答，资料里没有就说"课程中没有相关内容"**
+   - 新建管理接口触发重建（原临时 Runner 已删），供后续内容更新用
+   - 前端：课程详情页悬浮入口（限定本课程）+ 独立 `/assistant` 页面（全库）
 
 ### 之后
 
