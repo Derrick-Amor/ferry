@@ -14,6 +14,7 @@ import seb.mapper.ApplyMapper;
 import seb.mapper.CourseMapper;
 import seb.mapper.JobMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.Resource;
 
@@ -53,6 +54,11 @@ public class ApplyService extends ServiceImpl<ApplyMapper, Apply> {
         return PageResult.of(p);
     }
 
+    /**
+     * 审核：改 apply 记录 + 联动改 course / job 的上下架状态。
+     * 两者必须同生共死，否则会出现「申请已通过但课程仍处于待审核」的错位状态。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public void audit(AuditDTO dto) {
         Apply apply = this.getById(dto.getId());
         if (apply == null) throw new BusinessException("申请不存在");

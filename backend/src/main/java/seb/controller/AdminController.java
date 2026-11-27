@@ -5,8 +5,8 @@ import seb.common.Result;
 import seb.entity.Course;
 import seb.entity.Job;
 import seb.entity.Orders;
-import seb.entity.User;
 import seb.service.AdminService;
+import seb.vo.UserVO;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.annotation.Resource;
@@ -21,11 +21,11 @@ public class AdminController {
     private AdminService adminService;
 
     @GetMapping("/user/list")
-    public Result<PageResult<User>> userList(@RequestParam(required = false) String keyword,
-                                             @RequestParam(required = false) Integer role,
-                                             @RequestParam(required = false) Integer status,
-                                             @RequestParam(defaultValue = "1") long page,
-                                             @RequestParam(defaultValue = "10") long size) {
+    public Result<PageResult<UserVO>> userList(@RequestParam(required = false) String keyword,
+                                               @RequestParam(required = false) Integer role,
+                                               @RequestParam(required = false) Integer status,
+                                               @RequestParam(defaultValue = "1") long page,
+                                               @RequestParam(defaultValue = "10") long size) {
         return Result.ok(adminService.userList(keyword, role, status, page, size));
     }
 

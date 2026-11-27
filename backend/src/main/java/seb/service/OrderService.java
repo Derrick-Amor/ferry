@@ -11,6 +11,7 @@ import seb.entity.Course;
 import seb.entity.OrderItem;
 import seb.entity.Orders;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.Resource;
 import seb.mapper.CartMapper;
@@ -31,6 +32,11 @@ public class OrderService extends ServiceImpl<OrdersMapper, Orders> {
     @Resource private CartMapper cartMapper;
     @Resource private CourseMapper courseMapper;
 
+    /**
+     * 购物车下单：写 orders -> 循环写 order_item -> 删除 cart，三步必须同生共死。
+     * 缺事务时若 order_item 插入失败，会残留一条没有明细的空订单，且购物车项已被清空。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public Long create(Long userId, List<Long> cartIds) {
         if (cartIds == null || cartIds.isEmpty()) throw new BusinessException("请选择要结算的课程");
         List<Cart> carts = cartMapper.selectBatchIds(cartIds);
@@ -85,6 +91,10 @@ public class OrderService extends ServiceImpl<OrdersMapper, Orders> {
         return map;
     }
 
+    /**
+     * 支付：改订单状态 + 累加课程报名人数，跨 orders / course 两张表。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public void pay(Long userId, Long id) {
         Orders order = this.getById(id);
         if (order == null || !order.getUserId().equals(userId)) throw new BusinessException("订单不存在");

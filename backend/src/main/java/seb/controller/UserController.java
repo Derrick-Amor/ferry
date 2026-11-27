@@ -3,8 +3,8 @@ package seb.controller;
 import seb.auth.UserContext;
 import seb.common.Result;
 
-import seb.entity.User;
 import seb.service.UserService;
+import seb.vo.UserVO;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +38,7 @@ public class UserController {
     }
 
     @GetMapping("/info")
-    public Result<User> info() {
+    public Result<UserVO> info() {
         return Result.ok(userService.getInfo(UserContext.getUserId()));
     }
 

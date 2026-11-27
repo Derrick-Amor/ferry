@@ -13,6 +13,7 @@ import seb.dto.StudyProgressDTO;
 import seb.entity.*;
 import seb.mapper.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.Resource;
 
@@ -128,6 +129,11 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
                 .eq(Course::getStatus, 1));
     }
 
+    /**
+     * 上报学习进度：查后写（upsert）。新建记录时还会累加免费课程的报名人数，
+     * 跨 study_record / course 两张表，必须放在同一事务里。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public void saveProgress(Long userId, StudyProgressDTO dto) {
         Course course = this.getById(dto.getCourseId());
         if (course == null) throw new BusinessException("课程不存在");
@@ -154,6 +160,11 @@ public class CourseService extends ServiceImpl<CourseMapper, Course> {
         }
     }
 
+    /**
+     * 讲师申请上架课程：写 course -> 循环写 course_chapter -> 写 apply 申请记录，
+     * 三张表必须同生共死，否则会残留「有课程无章节」或「有课程无申请」的脏数据。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public void applyList(Long userId, CourseApplyDTO dto) {
         Course course = new Course();
         course.setCourseName(dto.getCourseName());

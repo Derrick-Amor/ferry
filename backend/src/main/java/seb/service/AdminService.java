@@ -7,6 +7,7 @@ import seb.common.BusinessException;
 import seb.common.PageResult;
 import seb.entity.*;
 import seb.mapper.*;
+import seb.vo.UserVO;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AdminService {
@@ -26,7 +28,7 @@ public class AdminService {
     @Resource private CourseMapper courseMapper;
     @Resource private JobMapper jobMapper;
 
-    public PageResult<User> userList(String keyword, Integer role, Integer status, long page, long size) {
+    public PageResult<UserVO> userList(String keyword, Integer role, Integer status, long page, long size) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         if (StrUtil.isNotBlank(keyword)) {
             wrapper.and(w -> w.like(User::getUsername, keyword).or().like(User::getNickname, keyword));
@@ -35,7 +37,9 @@ public class AdminService {
         if (status != null) wrapper.eq(User::getStatus, status);
         wrapper.orderByDesc(User::getCreateTime);
         Page<User> p = userMapper.selectPage(new Page<>(page, size), wrapper);
-        return PageResult.of(p);
+        // 出参必须脱敏：直接用 PageResult.of(p) 会把每行用户的 password 密文一起返回
+        List<UserVO> list = p.getRecords().stream().map(UserVO::from).collect(Collectors.toList());
+        return new PageResult<>(list, p.getTotal());
     }
 
     public void userStatus(Long id, Integer status) {

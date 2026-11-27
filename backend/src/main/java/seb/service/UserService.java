@@ -7,6 +7,7 @@ import seb.auth.JwtUtil;
 import seb.common.BusinessException;
 import seb.entity.User;
 import seb.mapper.UserMapper;
+import seb.vo.UserVO;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
@@ -67,14 +68,15 @@ public class UserService extends ServiceImpl<UserMapper, User> {
         String token = jwtUtil.createToken(user.getId(), user.getRole());
         Map<String, Object> map = new HashMap<>();
         map.put("token", token);
-        map.put("user", user);
+        // 不能直接放 User 实体：会把 password 的 BCrypt 密文原样吐给前端
+        map.put("user", UserVO.from(user));
         return map;
     }
 
-    public User getInfo(Long userId) {
+    public UserVO getInfo(Long userId) {
         User user = this.getById(userId);
         if (user == null) throw new BusinessException("用户不存在");
-        return user;
+        return UserVO.from(user);
     }
 
     public void updateInfo(Long userId, UpdateUserInfoDTO dto) {
