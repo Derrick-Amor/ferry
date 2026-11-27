@@ -32,6 +32,9 @@ public class KnowledgeDoc {
     /** 文档标题，如「第二章 变量、数据类型与运算符」 */
     private String title;
 
+    /** 文档正文（Markdown），分块与重建索引的唯一数据源 */
+    private String content;
+
     /** 来源类型：1课程章节 2职位描述 3上传文档 */
     private Integer sourceType;
 

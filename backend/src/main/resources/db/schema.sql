@@ -391,6 +391,7 @@ CREATE TABLE `ai_interview` (
 CREATE TABLE `knowledge_doc` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '文档ID',
   `title` varchar(200) NOT NULL COMMENT '文档标题',
+  `content` mediumtext COMMENT '文档正文(Markdown),分块与重建索引的唯一数据源',
   `source_type` tinyint NOT NULL COMMENT '来源:1课程章节 2职位描述 3上传文档',
   `course_id` bigint unsigned DEFAULT NULL COMMENT '关联课程ID,可空',
   `chapter_id` bigint unsigned DEFAULT NULL COMMENT '关联章节ID,可空',
