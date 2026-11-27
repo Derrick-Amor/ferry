@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 # ============================================================================
 # 渡口 Ferry · 后端镜像（多阶段构建）
 # ----------------------------------------------------------------------------
@@ -21,6 +20,10 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /build
+
+# 0) Maven 镜像配置先落地：Maven Central 在部分网络下返回 403，
+#    统一走阿里云公共仓库（详见 settings.xml 内注释）
+COPY settings.xml /root/.m2/settings.xml
 
 # 1) 先只拷 pom，把依赖下载独立成一层 —— 源码改动不会让这层缓存失效
 COPY pom.xml ./

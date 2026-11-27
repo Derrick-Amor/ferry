@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  渡口 Ferry · 容器内 Maven 镜像配置
+
+  为什么需要这个文件：
+  Maven Central（repo.maven.apache.org）在部分网络环境下会返回 403，
+  导致 docker build 阶段依赖下载失败。这里统一走阿里云公共仓库。
+
+  如果在你所在网络下阿里云反而更慢，可以删掉 <mirrors> 里的内容，
+  或换成 https://repo.maven.apache.org/maven2 直连。
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              https://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+  <mirrors>
+    <mirror>
+      <id>aliyun-public</id>
+      <name>Aliyun Public Repository</name>
+      <url>https://maven.aliyun.com/repository/public</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
+
+</settings>

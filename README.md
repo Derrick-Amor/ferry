@@ -95,7 +95,9 @@ npm run dev
 不想在本机装 JDK 21 / Maven / Node / MySQL，用方式二即可：
 
 ```bash
-# 1) 准备环境变量：填 DB_PASSWORD 与 MYSQL_ROOT_PASSWORD，JWT_SECRET 可先用示例值
+# 1) 准备环境变量：Docker 模式需要填 MYSQL_PASSWORD 与 MYSQL_ROOT_PASSWORD
+#    （DB_PASSWORD 是「方式一」连宿主机 MySQL 用的，Docker 模式不读）
+#    JWT_SECRET 可先用示例值
 cp .env.example .env
 
 # 2) 一条命令启动（首次要构建镜像，耗时较长）
@@ -120,6 +122,32 @@ docker compose up -d --build
   依赖层有缓存，只改业务代码时通常十几秒完成。
 - 停止：`docker compose down`；**连数据一起清空**（下次启动会重新灌种子数据）：
   `docker compose down -v`。
+
+### 国内网络环境的两处配置
+
+如果构建卡住，通常是这两个网络问题，与代码无关：
+
+**① 拉镜像报 `auth.docker.io ... Bad Gateway`**
+
+在 Docker Desktop → Settings → Docker Engine 的 JSON 里加入：
+
+```json
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io",
+    "https://docker.1ms.run",
+    "https://docker.xuanyuan.me"
+  ]
+}
+```
+
+点 **Apply & restart**。
+
+**② Maven 依赖下载报 `403 Forbidden`**
+
+仓库已内置处理：`backend/settings.xml` 把 Maven Central 指向阿里云公共仓库，
+构建时由 Dockerfile 复制为 `/root/.m2/settings.xml`。
+如果你的网络访问阿里云反而更慢，改该文件里的 `<url>` 即可。
 
 ## 测试账号
 

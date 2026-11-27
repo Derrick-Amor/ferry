@@ -48,7 +48,9 @@ services:
       #      （"MYSQL_USER and MYSQL_PASSWORD are for configuring a regular user
       #        and cannot be used for the root user"）。
       MYSQL_USER: ferry
-      MYSQL_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      # 容器内业务账号的口令，与「方式一」连宿主机的 DB_PASSWORD 相互独立，
+      # 避免把本机 MySQL 的 root 口令复制进容器
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 中设置 MYSQL_PASSWORD}
       TZ: Asia/Shanghai
     volumes:
       - mysql-data:/var/lib/mysql
@@ -86,7 +88,7 @@ services:
       # 必须与 mysql 服务的 MYSQL_USER 一致，且不能是 root：
       # mysql 镜像默认只允许 root 从 localhost 登录，跨容器用 root 会被拒绝
       DB_USER: ferry
-      DB_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 中设置 MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
       JWT_EXPIRE: ${JWT_EXPIRE:-86400}
       TZ: Asia/Shanghai
