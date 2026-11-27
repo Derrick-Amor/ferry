@@ -13,8 +13,8 @@ onMounted(async () => {
   <div class="container page">
     <section class="hero">
       <div class="hero-copy">
-        <h1 class="font-display">智慧教育平台</h1>
-        <p>汇聚优质课程、实训、实习与 AI 面试，一站式智慧学习与成长平台。</p>
+        <h1 class="font-display">渡口</h1>
+        <p>课程是岸，岗位是岸。中间那一段水，这里有船。</p>
         <div class="flex">
           <router-link to="/course"><button class="btn btn-primary">开始探索</button></router-link>
           <router-link to="/job"><button class="btn btn-ghost">寻找职位</button></router-link>

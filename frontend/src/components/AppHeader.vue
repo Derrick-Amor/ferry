@@ -11,7 +11,7 @@ async function onLogout() { await auth.logout(); router.push('/') }
 <template>
   <header class="header">
     <div class="container header-inner">
-      <router-link to="/" class="logo">智慧教育<span class="dot">·</span>平台</router-link>
+      <router-link to="/" class="logo">渡口<span class="dot">·</span>Ferry</router-link>
       <nav class="nav">
         <router-link to="/">首页</router-link>
         <router-link to="/course">课程</router-link>

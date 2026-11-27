@@ -16,7 +16,7 @@ const links = [
 <template>
   <div class="admin">
     <aside class="side">
-      <router-link to="/" class="logo">智慧教育<span class="dot">·</span>平台</router-link>
+      <router-link to="/" class="logo">渡口<span class="dot">·</span>管理台</router-link>
       <nav>
         <router-link v-for="l in links" :key="l.to" :to="l.to" class="link">{{ l.text }}</router-link>
       </nav>

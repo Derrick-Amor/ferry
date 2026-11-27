@@ -9,10 +9,10 @@
 		<relativePath/>
 	</parent>
 	<groupId>org</groupId>
-	<artifactId>smart-edu-backend</artifactId>
+	<artifactId>ferry-backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>smart-edu-backend</name>
-	<description>smart-edu-backend</description>
+	<name>ferry-backend</name>
+	<description>渡口 Ferry · 从学到做的学习与求职平台（后端）</description>
 
 	<properties>
 		<!-- 编译与运行统一使用 Java 21；source/target 由 spring-boot-starter-parent
