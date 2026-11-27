@@ -1,114 +1,65 @@
 package seb.service;
 
-import cn.hutool.crypto.digest.BCrypt;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import seb.auth.JwtUtil;
-import seb.common.BusinessException;
-import seb.entity.User;
-import seb.mapper.UserMapper;
+import seb.dto.ForgotPasswordDTO;
+import seb.dto.LoginDTO;
+import seb.dto.RegisterDTO;
+import seb.dto.ResetPasswordDTO;
+import seb.dto.UpdateUserInfoDTO;
 import seb.vo.UserVO;
-import org.springframework.stereotype.Service;
 
-import jakarta.annotation.Resource;
-import seb.dto.*;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 
-@Service
-public class UserService extends ServiceImpl<UserMapper, User> {
+/**
+ * 用户业务接口：注册、登录、资料与密码管理。
+ *
+ * <p>方法声明只包含业务能力。持久化 CRUD（getById / save / updateById 等）
+ * 由实现类继承 MyBatis-Plus 的 ServiceImpl 获得，属于实现细节，不对外暴露。
+ */
+public interface UserService {
 
-    @Resource
-    private JwtUtil jwtUtil;
+    /**
+     * 注册新用户，密码以 BCrypt 加密后落库。
+     *
+     * @param dto 注册参数
+     */
+    void register(RegisterDTO dto);
 
-    public void register(RegisterDTO dto) {
-        long count = this.count(new QueryWrapper<User>().eq("username", dto.getUsername()));
-        if (count > 0) throw new BusinessException("用户名已存在");
-        // 昵称是选填项，空串 / 空白串都要按「未填写」处理。
-        // 只判 != null 的话，前端表单初值 nickname: '' 会被当成真实昵称参与查重，
-        // 库里只要已存在空昵称用户，后续所有不填昵称的注册都会被误判为「昵称已被使用」；
-        // 同时下面的用户名兜底分支也不会执行，昵称会被写成空串。
-        String nickname = (dto.getNickname() == null || dto.getNickname().isBlank())
-                ? null : dto.getNickname().trim();
-        if (nickname != null
-                && this.count(new QueryWrapper<User>().eq("nickname", nickname)) > 0) {
-            throw new BusinessException("昵称已被使用");
-        }
-        if (dto.getEmail() != null
-                && this.count(new QueryWrapper<User>().eq("email", dto.getEmail())) > 0) {
-            throw new BusinessException("该邮箱已被注册");
-        }
-        Integer role = dto.getRole() != null ? dto.getRole() : 0;
-        if (dto.getPhone() != null
-                && this.count(new QueryWrapper<User>().eq("phone", dto.getPhone()).eq("role", role)) > 0) {
-            throw new BusinessException("该手机号在此身份下已被使用");
-        }
-        User user = new User();
-        user.setUsername(dto.getUsername());
-        user.setPassword(BCrypt.hashpw(dto.getPassword(), BCrypt.gensalt()));
-        user.setNickname(nickname != null ? nickname : dto.getUsername());
-        user.setPhone(dto.getPhone());
-        user.setEmail(dto.getEmail());
-        user.setRole(role);
-        user.setStatus(1);
-        this.save(user);
-    }
+    /**
+     * 账号密码登录，成功后返回 token 与脱敏后的用户信息。
+     *
+     * @param dto 登录参数
+     * @return 包含 {@code token} 与 {@code user} 两个键的 Map
+     */
+    Map<String, Object> login(LoginDTO dto);
 
-    public Map<String, Object> login(LoginDTO dto) {
-        User user = this.getOne(new QueryWrapper<User>().eq("username", dto.getUsername()));
-        if (user == null || !BCrypt.checkpw(dto.getPassword(), user.getPassword())) {
-            throw new BusinessException("用户名或密码错误");
-        }
-        if (user.getStatus() == 0) throw new BusinessException("账号已被禁用");
-        user.setLastLoginTime(LocalDateTime.now());
-        this.updateById(user);
+    /**
+     * 查询指定用户的对外信息（不含密码）。
+     *
+     * @param userId 用户ID
+     * @return 脱敏后的用户视图对象
+     */
+    UserVO getInfo(Long userId);
 
-        String token = jwtUtil.createToken(user.getId(), user.getRole());
-        Map<String, Object> map = new HashMap<>();
-        map.put("token", token);
-        // 不能直接放 User 实体：会把 password 的 BCrypt 密文原样吐给前端
-        map.put("user", UserVO.from(user));
-        return map;
-    }
+    /**
+     * 更新当前用户的昵称、真实姓名、头像。
+     *
+     * @param userId 用户ID
+     * @param dto    待更新字段
+     */
+    void updateInfo(Long userId, UpdateUserInfoDTO dto);
 
-    public UserVO getInfo(Long userId) {
-        User user = this.getById(userId);
-        if (user == null) throw new BusinessException("用户不存在");
-        return UserVO.from(user);
-    }
+    /**
+     * 校验原密码后修改密码。
+     *
+     * @param userId 用户ID
+     * @param dto    原密码与新密码
+     */
+    void resetPassword(Long userId, ResetPasswordDTO dto);
 
-    public void updateInfo(Long userId, UpdateUserInfoDTO dto) {
-        User user = this.getById(userId);
-        if (user == null) throw new BusinessException("用户不存在");
-        if (dto.getNickname() != null) {
-            // 空白昵称不做查重（否则会与库中其它空昵称用户互相冲突），但仍按原样保存
-            if (!dto.getNickname().isBlank()
-                    && this.count(new QueryWrapper<User>().eq("nickname", dto.getNickname()).ne("id", userId)) > 0) {
-                throw new BusinessException("昵称已被使用");
-            }
-            user.setNickname(dto.getNickname());
-        }
-        if (dto.getRealName() != null) user.setRealName(dto.getRealName());
-        if (dto.getAvatar() != null) user.setAvatar(dto.getAvatar());
-        this.updateById(user);
-    }
-
-    public void resetPassword(Long userId, ResetPasswordDTO dto) {
-        User user = this.getById(userId);
-        if (user == null) throw new BusinessException("用户不存在");
-        if (!BCrypt.checkpw(dto.getOldPassword(), user.getPassword())) {
-            throw new BusinessException("原密码错误");
-        }
-        user.setPassword(BCrypt.hashpw(dto.getNewPassword(), BCrypt.gensalt()));
-        this.updateById(user);
-    }
-
-    public void forgotPassword(ForgotPasswordDTO dto) {
-        User user = this.getOne(new QueryWrapper<User>().eq("phone", dto.getPhone()));
-        if (user == null) throw new BusinessException("该手机号未注册");
-        user.setPassword(BCrypt.hashpw(dto.getNewPassword(), BCrypt.gensalt()));
-        this.updateById(user);
-    }
+    /**
+     * 通过手机号重置密码（忘记密码场景）。
+     *
+     * @param dto 手机号与新密码
+     */
+    void forgotPassword(ForgotPasswordDTO dto);
 }

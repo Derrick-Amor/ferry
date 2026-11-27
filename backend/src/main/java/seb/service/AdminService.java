@@ -1,105 +1,92 @@
 package seb.service;
 
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import seb.common.BusinessException;
 import seb.common.PageResult;
-import seb.entity.*;
-import seb.mapper.*;
+import seb.entity.Course;
+import seb.entity.Job;
+import seb.entity.Orders;
 import seb.vo.UserVO;
-import org.springframework.stereotype.Service;
 
-import jakarta.annotation.Resource;
-
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-@Service
-public class AdminService {
+/**
+ * 后台管理业务接口：用户、订单、课程、职位的管理与状态变更。
+ */
+public interface AdminService {
 
-    @Resource private UserMapper userMapper;
-    @Resource private OrdersMapper ordersMapper;
-    @Resource private OrderItemMapper orderItemMapper;
-    @Resource private CourseMapper courseMapper;
-    @Resource private JobMapper jobMapper;
+    /**
+     * 分页查询用户，支持按用户名/昵称关键词、角色、状态筛选。
+     *
+     * @param keyword 用户名或昵称关键词
+     * @param role    角色，null 表示全部
+     * @param status  状态，null 表示全部
+     * @param page    页码
+     * @param size    每页条数
+     * @return 用户脱敏信息的分页结果
+     */
+    PageResult<UserVO> userList(String keyword, Integer role, Integer status, long page, long size);
 
-    public PageResult<UserVO> userList(String keyword, Integer role, Integer status, long page, long size) {
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        if (StrUtil.isNotBlank(keyword)) {
-            wrapper.and(w -> w.like(User::getUsername, keyword).or().like(User::getNickname, keyword));
-        }
-        if (role != null) wrapper.eq(User::getRole, role);
-        if (status != null) wrapper.eq(User::getStatus, status);
-        wrapper.orderByDesc(User::getCreateTime);
-        Page<User> p = userMapper.selectPage(new Page<>(page, size), wrapper);
-        // 出参必须脱敏：直接用 PageResult.of(p) 会把每行用户的 password 密文一起返回
-        List<UserVO> list = p.getRecords().stream().map(UserVO::from).collect(Collectors.toList());
-        return new PageResult<>(list, p.getTotal());
-    }
+    /**
+     * 启用 / 禁用用户。
+     *
+     * @param id     用户ID
+     * @param status 0禁用 1正常
+     */
+    void userStatus(Long id, Integer status);
 
-    public void userStatus(Long id, Integer status) {
-        User user = userMapper.selectById(id);
-        if (user == null) throw new BusinessException("用户不存在");
-        user.setStatus(status);
-        userMapper.updateById(user);
-    }
+    /**
+     * 分页查询订单。
+     *
+     * @param status  订单状态，null 表示全部
+     * @param keyword 订单号关键词
+     * @param page    页码
+     * @param size    每页条数
+     * @return 分页结果
+     */
+    PageResult<Orders> orderList(Integer status, String keyword, long page, long size);
 
-    public PageResult<Orders> orderList(Integer status, String keyword, long page, long size) {
-        LambdaQueryWrapper<Orders> wrapper = new LambdaQueryWrapper<>();
-        if (status != null) wrapper.eq(Orders::getStatus, status);
-        if (StrUtil.isNotBlank(keyword)) wrapper.like(Orders::getOrderNo, keyword);
-        wrapper.orderByDesc(Orders::getCreateTime);
-        Page<Orders> p = ordersMapper.selectPage(new Page<>(page, size), wrapper);
-        return PageResult.of(p);
-    }
+    /**
+     * 订单详情，含明细。
+     *
+     * @param id 订单ID
+     * @return 含 {@code order} / {@code items} 的 Map
+     */
+    Map<String, Object> orderDetail(Long id);
 
-    public Map<String, Object> orderDetail(Long id) {
-        Orders order = ordersMapper.selectById(id);
-        if (order == null) throw new BusinessException("订单不存在");
-        List<OrderItem> items = orderItemMapper.selectList(
-                new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, id));
-        Map<String, Object> map = new HashMap<>();
-        map.put("order", order);
-        map.put("items", items);
-        return map;
-    }
+    /**
+     * 直接变更课程上下架状态（绕过审核流程）。
+     *
+     * @param id     课程ID
+     * @param status 目标状态
+     */
+    void courseStatus(Long id, Integer status);
 
-    public void courseStatus(Long id, Integer status) {
-        Course course = courseMapper.selectById(id);
-        if (course == null) throw new BusinessException("课程不存在");
-        course.setStatus(status);
-        if (status == 1) course.setListTime(LocalDateTime.now());
-        courseMapper.updateById(course);
-    }
+    /**
+     * 直接变更职位上下架状态（绕过审核流程）。
+     *
+     * @param id     职位ID
+     * @param status 目标状态
+     */
+    void jobStatus(Long id, Integer status);
 
-    public void jobStatus(Long id, Integer status) {
-        Job job = jobMapper.selectById(id);
-        if (job == null) throw new BusinessException("职位不存在");
-        job.setStatus(status);
-        if (status == 1) job.setListTime(LocalDateTime.now());
-        jobMapper.updateById(job);
-    }
+    /**
+     * 分页查询课程。
+     *
+     * @param status  课程状态，null 表示全部
+     * @param keyword 课程名称关键词
+     * @param page    页码
+     * @param size    每页条数
+     * @return 分页结果
+     */
+    PageResult<Course> courseList(Integer status, String keyword, long page, long size);
 
-    public PageResult<Course> courseList(Integer status, String keyword, long page, long size) {
-        LambdaQueryWrapper<Course> wrapper = new LambdaQueryWrapper<>();
-        if (status != null) wrapper.eq(Course::getStatus, status);
-        if (StrUtil.isNotBlank(keyword)) wrapper.like(Course::getCourseName, keyword);
-        wrapper.orderByDesc(Course::getCreateTime);
-        Page<Course> p = courseMapper.selectPage(new Page<>(page, size), wrapper);
-        return PageResult.of(p);
-    }
-
-    public PageResult<Job> jobList(Integer status, String keyword, long page, long size) {
-        LambdaQueryWrapper<Job> wrapper = new LambdaQueryWrapper<>();
-        if (status != null) wrapper.eq(Job::getStatus, status);
-        if (StrUtil.isNotBlank(keyword)) wrapper.like(Job::getJobName, keyword);
-        wrapper.orderByDesc(Job::getCreateTime);
-        Page<Job> p = jobMapper.selectPage(new Page<>(page, size), wrapper);
-        return PageResult.of(p);
-    }
+    /**
+     * 分页查询职位。
+     *
+     * @param status  职位状态，null 表示全部
+     * @param keyword 岗位名称关键词
+     * @param page    页码
+     * @param size    每页条数
+     * @return 分页结果
+     */
+    PageResult<Job> jobList(Integer status, String keyword, long page, long size);
 }
