@@ -6,6 +6,9 @@
 
 项目最初是一个课程作业，现在正在被重构成一个可以公开阅读、可以一键跑起来的工程项目。重构过程记录在 [路线图](#路线图) 里，每一步都有可验证的产出。
 
+**仓库**：[github.com/Derrick-Amor/ferry](https://github.com/Derrick-Amor/ferry) ｜
+**工程交接与踩坑记录**：[HANDOFF.md](./HANDOFF.md)（18 条踩坑，接手前值得先看一眼）
+
 ---
 
 ## 技术栈
@@ -208,7 +211,7 @@ ferry/
 |---|---|---|
 | S0 止血 | monorepo 重组、可重建的 DDL 与种子数据、密钥外置、隐私清洗 | ✅ 完成 |
 | S1 工程地基 | 升级 Java 21、Service 接口化、补事务、Docker Compose、密码脱敏 | ✅ 完成 |
-| S2 RAG 主链路 | 知识库建模、文档解析分块、向量检索、引用溯源、Python 评测 | ✅ 完成 |
+| S2 智能助教 | 知识库建模、文档分块、向量检索、双范式问答（生成式 + RAG）、引用溯源、Python 评测 | ✅ 完成 |
 | S3 模拟面试 | LLM 动态出题、多轮追问、结构化评分 | ⏳ 待开始 |
 | S4 质量与性能 | JUnit 单测、慢 SQL 优化、Redis 缓存、虚拟线程压测对比 | ⏳ 待开始 |
 | S5 展示 | README 精修、演示 GIF、GitHub Actions CI | ⏳ 待开始 |
