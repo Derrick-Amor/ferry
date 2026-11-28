@@ -42,6 +42,7 @@ public class JobQueryParser {
         CATEGORY_KEYWORDS.put("dba", List.of("数据存储"));
         CATEGORY_KEYWORDS.put("大数据", List.of("大数据"));
         CATEGORY_KEYWORDS.put("数仓", List.of("大数据"));
+        CATEGORY_KEYWORDS.put("数据治理", List.of("数据治理"));
         CATEGORY_KEYWORDS.put("数据分析", List.of("数据分析"));
         CATEGORY_KEYWORDS.put("分析师", List.of("数据分析"));
         CATEGORY_KEYWORDS.put("后端", List.of("后端开发"));
@@ -49,6 +50,11 @@ public class JobQueryParser {
         CATEGORY_KEYWORDS.put("java", List.of("后端开发"));
         CATEGORY_KEYWORDS.put("前端", List.of("前端开发"));
         CATEGORY_KEYWORDS.put("vue", List.of("前端开发"));
+        CATEGORY_KEYWORDS.put("react", List.of("前端开发"));
+        CATEGORY_KEYWORDS.put("移动端", List.of("移动开发"));
+        CATEGORY_KEYWORDS.put("安卓", List.of("移动开发"));
+        CATEGORY_KEYWORDS.put("android", List.of("移动开发"));
+        CATEGORY_KEYWORDS.put("ios", List.of("移动开发"));
         CATEGORY_KEYWORDS.put("测试", List.of("测试"));
         CATEGORY_KEYWORDS.put("qa", List.of("测试"));
         CATEGORY_KEYWORDS.put("运维", List.of("运维"));
@@ -57,6 +63,15 @@ public class JobQueryParser {
         CATEGORY_KEYWORDS.put("机器学习", List.of("算法"));
         CATEGORY_KEYWORDS.put("全栈", List.of("全栈"));
         CATEGORY_KEYWORDS.put("嵌入式", List.of("嵌入式"));
+        // 刻意不写「设计」：它会把「芯片设计」「架构设计」也当成设计岗，
+        // 实测就是这一条把「有没有芯片设计相关的职位」从拒答变成了误答
+        CATEGORY_KEYWORDS.put("设计师", List.of("设计"));
+        CATEGORY_KEYWORDS.put("ui", List.of("设计"));
+        CATEGORY_KEYWORDS.put("ux", List.of("设计"));
+        CATEGORY_KEYWORDS.put("交互设计", List.of("设计"));
+        CATEGORY_KEYWORDS.put("售前", List.of("售前"));
+        CATEGORY_KEYWORDS.put("实施", List.of("实施"));
+        CATEGORY_KEYWORDS.put("技术支持", List.of("技术支持"));
         CATEGORY_KEYWORDS.put("产品", List.of("产品"));
         CATEGORY_KEYWORDS.put("运营", List.of("运营"));
         CATEGORY_KEYWORDS.put("大模型", List.of("人工智能"));
