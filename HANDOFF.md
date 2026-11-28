@@ -1,7 +1,17 @@
 # 渡口 Ferry · 项目交接文档
 
 > 写给接手的新对话。读完这份，你应该能在不看历史聊天记录的情况下继续推进。
-> 最后更新：2026-11-28 01:25
+> 最后更新：2026-11-28 23:10（S2-C 全部完成并提交，下一步是 S3）
+
+---
+
+## 0. 五句话确认状态
+
+- **阶段**：S2 全部完成并提交（3 个 commit 在本地 `main`，**未推远端**），下一步 S3。
+- **已完成**：S0→S2-C。智能助教做成两种范式（学习答疑生成式、岗位咨询 RAG），岗位语料 50 条，评测 10/10 / 5/5 / 6/6。
+- **下一步**：S3 模拟面试改造（现在还是前端固定 5 题 + 后端计数，**不是 AI**）。
+- **阻塞项**：无。四个容器在跑且 healthy，`docker compose up -d` 即可恢复环境。
+- **不能做**：不改技术栈（第三节已定死）；不把「模拟面试」宣传成 AI 评分（它还不是）；不删 `docs/`（历史材料留着对照）；不代做 git 推送（推远端由作者决定）。
 
 ---
 
@@ -15,7 +25,9 @@
 - 本地：`C:\Users\D.Amor\Desktop\智慧教育平台`
 - 作者：Amor（Derrick-Amor），大四软件工程，2027 年毕业
 
-**核心差异化**：不是"又一个 CRUD 系统"，而是要在其中做出**带引用溯源的 RAG 智能助教**。这是简历上真正值钱的部分。
+**核心差异化**：不是"又一个 CRUD 系统"，而是要在其中做出**带引用溯源的 RAG**。
+但 S2-C 的结论是：**RAG 不能全场景套用**，所以最终做成两种范式——
+学习答疑用生成式（要的是讲清楚），岗位咨询用 RAG（要的是准确可查）。详见第五节。
 
 ---
 
@@ -29,14 +41,17 @@
 | S1-C | Docker 三服务编排 + 品牌统一 | ✅ 已推送并实地跑通 |
 | S2-A | Redis Stack + Spring AI + 知识库两张表 | ✅ 已推送 |
 | S2-B | 37 章正文生成 + 分块向量化入库（**165 块**） | ✅ 已推送 |
-| S2-C | 智能助教：学习答疑（生成式）+ 岗位咨询（RAG，含引用）+ 前端 | ✅ 已实现，待提交 |
+| S2-C | 智能助教：学习答疑（生成式）+ 岗位咨询（RAG，含引用）+ 前端 | ✅ 已提交（3 个 commit） |
 | S3 | 模拟面试改造（接 LLM 动态出题） | ⏳ 待做 |
 | S4 | JUnit 单测、慢 SQL、Redis 缓存、压测对比 | ⏳ 待做 |
 | S5 | README 精修、演示 GIF、GitHub Actions | ⏳ 待做 |
 
-**提交记录**（S2-C 未提交；下面是截至 S2-B 的已推送记录）：
+**提交记录**（S2-C 三个提交都在本地 `main`，**未推远端**）：
 
 ```
+95172dc feat(assistant): 岗位关键词配置化 + 每日同步任务 + 答疑支持长上下文追问
+d53ec8c feat(job): 岗位语料扩到 50 条，关键词映射覆盖新方向
+52bbad3 feat(assistant): 拆分为生成式答疑与岗位 RAG 双链路
 38fea27 docs: 交接文档补充 S2-B 成果与 Spring AI metadata 坑
 b375fbd feat(rag): 生成 37 章课程正文，完成分块向量化入库
 78df439 feat(rag): 接入 Redis 向量库与 Spring AI，建立知识库表结构
@@ -287,6 +302,17 @@ S2-C 做成**异步 + 内存态进度**（`KnowledgeRebuildJob`），接口立�
 再重跑。另外 Git Bash 会把 `/assistant` 这样的参数当路径转换，
 跑 node 脚本前先 `export MSYS_NO_PATHCONV=1`。
 
+**验证 UI 有两条路，按需求选**：
+- 只验「渲染成什么样、状态恢复没有」→ 用 `chrome --headless=new --dump-dom --virtual-time-budget=8000`，
+  跑完自己退出，**根本不会挂**。登录态可以让页面自己写：往容器里临时放一个
+  `__probe.html`，里面 `localStorage.setItem('ferry_token', ...)` 然后 `location.replace('/assistant')`，
+  验完删掉（注意 SPA 回退会让这个 URL 之后仍返回 200 首页，别误判成没删干净）。
+- 要验「点按钮 / 打字 / 追问」→ 才需要 CDP，且必须按上面三条规矩来，外层再套 `timeout 200`。
+
+**验收断言要认准「结束信号」**：这次差点被自己骗了——用「页面上出现 `.answer`」判断回答结束，
+结果 `.answer` 在第一个 token 到达时就渲染出来了，截到的是半句话（16 字）。
+可靠信号是「停止按钮消失」（它只在流式过程中存在）。
+
 ### 18. 三个限制叠在一起，追问功能等于摆设
 
 用户反馈「追问不好用」。查下来不是模型的问题，是三处硬限制叠在一起：
@@ -314,7 +340,11 @@ sessionStorage，切页面回来还能接着问。
 │   ├── src/main/java/seb/
 │   │   ├── controller/  service/(8 接口)  service/impl/(8 实现)
 │   │   ├── entity/  dto/  vo/  mapper/  common/  config/  auth/
-│   │   └── ai/                   ← S2 新增（config / controller / service / model / dto / vo）
+│   │   └── ai/                   ← S2 新增
+│   │       ├── config/           VectorStoreConfig（索引 schema）
+│   │       ├── controller/       AssistantController / AdminKnowledgeController
+│   │       ├── service/          检索、重排、生成、重建、岗位同步、关键词词典
+│   │       ├── dto/ vo/ model/   请求体、引用、命中块、硬条件
 │   ├── src/main/resources/db/    schema.sql(17 表) data.sql knowledge_seed.sql
 │   ├── settings.xml              阿里云 Maven 镜像
 │   └── Dockerfile
@@ -324,8 +354,10 @@ sessionStorage，切页面回来还能接着问。
 │   └── Dockerfile
 ├── test/                         pytest 196 条 + selenium + perf_tests
 ├── scripts/                      一次性脚本（gen_knowledge_seed.py、eval_assistant.py）
+├── config/                       运行期可改的配置（job-category-keywords.json）
+│                                 ← 只读挂载到容器 /app/config，改完 restart 即生效
 ├── docs/                         课程作业阶段的历史文档（旧名「智慧教育平台」，保留原样）
-├── docker-compose.yml            4 服务 + 命名卷 + healthcheck
+├── docker-compose.yml            4 服务 + 命名卷 + healthcheck + config 挂载
 ├── .env / .env.example           环境变量（.env 不入库）
 └── HANDOFF.md                    本文件
 ```
@@ -334,7 +366,7 @@ sessionStorage，切页面回来还能接着问。
 
 ## 七、下一步该做什么
 
-### S2-C 已实现（待你验收 + 提交）
+### S2-C 已完成（已提交，三个 commit）
 
 **两种问答范式**，同一个入口，靠请求里的 `scope` 分流：
 
@@ -347,11 +379,11 @@ sessionStorage，切页面回来还能接着问。
 
 | 接口 | 说明 |
 |---|---|
-| `POST /api/assistant/chat` | SSE，事件顺序固定 `citations → delta* → done`；请求体 `{question, scope, context?, history?}`，`history` 最多 8 条、前端持有后端不落库 |
+| `POST /api/assistant/chat` | SSE，事件顺序固定 `citations → delta* → done`；请求体 `{question, scope, context?, history?}`；`history` 最多 24 条（12 轮），前端持有、后端不落库 |
 | `GET /api/admin/knowledge/status` | 文档数 / 分块数 / 岗位文档数 / 重建进度 |
 | `POST /api/admin/knowledge/rebuild` | 全量重建，异步，返回 `started` |
 | `POST /api/admin/knowledge/{docId}/rebuild` | 单篇重建，同步返回统计 |
-| `POST /api/admin/knowledge/sync-jobs` | 把在架职位同步成知识文档，并自动触发重建 |
+| `POST /api/admin/knowledge/sync-jobs` | 把在架职位同步成知识文档，并自动触发重建。日常由定时任务自己做，接口留着手工触发 |
 
 自测（口令从环境变量取，别回显）：
 
@@ -384,11 +416,24 @@ python scripts/eval_assistant.py
 5 条拒答全部走的是「解析不出条件 → 落到阈值」这条路，最高分只有 0.020，
 相对当前阈值 0.38 有 19 倍余量，所以阈值不必动。
 
-### 之后
+### 之后（新对话从这里接手）
 
-- **S3 模拟面试**：当前是假的（前端 5 道固定题、后端按已答题数计分，README 已声明不是 AI）。改成 LLM 基于简历 + 岗位动态出题、多轮追问、结构化评分
-- **S4 质量**：JUnit 单测（目前后端零单测，196 条都在 pytest 侧）、慢 SQL 优化、Redis 缓存、虚拟线程压测对比
-- **S5 展示**：README 精修、演示 GIF、GitHub Actions CI
+**S3 模拟面试**（建议下一步做，它是简历上第二个能讲的东西）
+- 现状是假的：前端 5 道固定题、后端按已答题数计分，没有任何模型参与。README 已如实声明「不是 AI 评分」。
+- 目标：LLM 基于「简历 + 目标岗位」动态出题 → 多轮追问 → 结构化评分（维度分 + 评语 + 改进建议）。
+- 现成可复用的东西：`AssistantServiceImpl` 的 SSE 推流、`JobCriteria`/`JobQueryParser`（可按岗位定向出题）、
+  `scripts/eval_assistant.py` 的评测思路（面试题也能做黄金集）。
+- 注意：评分是最容易「看起来专业、实际瞎给分」的地方，别用一句「请打分」了事，
+  要定义维度（技术准确度 / 表达结构 / 岗位匹配度）并给每条分数附证据。
+
+**S4 质量**
+- 后端零单测（196 条都在 pytest 侧）。优先补：`JobQueryParser` 的条件解析、`KnowledgeRetrievalServiceImpl` 的预算裁剪与去重、
+  `AssistantServiceImpl.toMessages` 的历史裁剪——这三处都是纯函数/易测逻辑，且都出过 bug。
+- 慢 SQL、Redis 缓存、虚拟线程压测对比（JMeter 脚本在 `test/perf_tests`）。
+
+**S5 展示**
+- README 精修（现在的「两种问答范式」那节是全文最值钱的部分，可以再补一张截图）、演示 GIF、GitHub Actions CI。
+- **三个 commit 还没推远端**，新对话第一件事可以是 `git push`。
 
 ---
 
@@ -406,6 +451,8 @@ python scripts/eval_assistant.py
 | `@Resource` 按类型回退注入（字段名 `userService` vs bean `userServiceImpl`） | 低 | 若将来一个接口多实现会歧义 |
 | 演示口令 `123456` 与本机 MySQL root 口令相同 | 中 | 用户已决定暂不处理；容器内 3306 不对外，风险可控 |
 | 后端零单元测试 | 中 | S4 补 |
+| 岗位定时同步没有补偿：03:00 容器没在跑就跳过当天 | 低 | 手工调 `POST /api/admin/knowledge/sync-jobs` 即可；后续可加启动时补跑 |
+| 会话只存在当前标签页（sessionStorage），关掉就没了 | 低 | 刻意如此：共享电脑上不该留下对话记录。要跨会话保存得改成服务端会话 |
 | `docs/` 里是旧项目名文档，未改写 | 低 | README 已说明来源 |
 
 **关于 admin 登不上（已解决）**：早期发现库里的 admin 哈希与 `data.sql` 那份不一致，
