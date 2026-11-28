@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import { streamChat } from '@/api/assistant'
 
@@ -46,16 +46,86 @@ function scrollToBottom() {
 }
 
 /**
- * 取最近 4 轮作为上下文。注意要排除当前这一问：
+ * 取最近 10 轮作为上下文。注意要排除当前这一问：
  * 后端拿 history 做指代消解，若把当前问句也放进去会自己指代自己。
  */
+const HISTORY_MAX_TURNS = 20
+/** 单条发回后端的字符上限；只截断副本，界面上的消息保持完整 */
+const HISTORY_MAX_ITEM = 2000
+
 function buildHistory() {
   return messages.value
     .filter(m => m.role === 'user' || (m.status === 'done'))
-    .map(m => ({ role: m.role, content: m.text }))
+    .map(m => ({
+      role: m.role,
+      content: m.text.length > HISTORY_MAX_ITEM ? m.text.slice(0, HISTORY_MAX_ITEM) + '…' : m.text
+    }))
     .filter(m => m.content && m.content.trim())
-    .slice(-8)
+    .slice(-HISTORY_MAX_TURNS)
 }
+
+/**
+ * 会话落 sessionStorage：用户切到别的页面再回来，追问还能接上。
+ *
+ * 为什么是 sessionStorage 而不是 localStorage：一次学习会话结束后不该在
+ * 共享电脑上留下对话记录；关掉标签页就没了，符合直觉。
+ * key 带上 scope 与 context，课程页的答疑与岗位页的咨询不会互相串。
+ *
+ * 只在「用户发言 / 回答结束 / 清空」三个时机写盘，不在每个 token 上写——
+ * 流式输出每来一个字就 JSON.stringify 整个会话，会把主线程拖垮。
+ */
+function storageKey() {
+  const ctx = (props.context || '').trim()
+  return `ferry_chat:${props.scope}:${ctx || '-'}`
+}
+
+function persist() {
+  try {
+    if (!messages.value.length) {
+      sessionStorage.removeItem(storageKey())
+      return
+    }
+    sessionStorage.setItem(storageKey(), JSON.stringify(messages.value))
+  } catch (e) {
+    // 隐私模式或超配额：存不下就算了，不能因此影响对话本身
+  }
+}
+
+function restore() {
+  try {
+    const raw = sessionStorage.getItem(storageKey())
+    if (!raw) return
+    const list = JSON.parse(raw)
+    if (!Array.isArray(list)) return
+    messages.value = list
+      .filter(m => m && m.role && typeof m.text === 'string')
+      .map(m => ({
+        role: m.role,
+        text: m.text,
+        citations: Array.isArray(m.citations) ? m.citations : [],
+        // 恢复出来的消息一律视为已完成：绝不能让上一轮的气泡继续转圈
+        status: 'done',
+        rejected: !!m.rejected,
+        topScore: m.topScore || 0,
+        error: '',
+        firstAt: 0,
+        elapsed: m.elapsed || 0,
+        openIndex: -1
+      }))
+  } catch (e) {
+    // 坏数据当作没有，不要让一条脏缓存把整个页面搞白
+  }
+}
+
+function clearAll() {
+  messages.value = []
+  persist()
+}
+
+onMounted(() => {
+  restore()
+  scrollToBottom()
+})
 
 /**
  * 岗位模式的拒答。citations 事件一定先于第一条 delta 到达，
@@ -73,6 +143,7 @@ async function send(text) {
   const history = buildHistory()
   input.value = ''
   messages.value.push({ role: 'user', text: question })
+  persist()
 
   const startedAt = performance.now()
   // 必须是 reactive 而不是 ref({...}).value：后者拿到的是原始对象，
@@ -125,6 +196,8 @@ async function send(text) {
     sending.value = false
     controller = null
     scrollToBottom()
+    // 一轮结束后落盘：此时内容才稳定，流式过程中写盘是浪费
+    persist()
   }
 }
 
@@ -262,7 +335,7 @@ onBeforeUnmount(() => controller?.abort())
         <!-- 背景单独一行显示：课程名可能很长，塞进标签会把整行撑破 -->
         <span v-if="safeContext" class="scope-ctx" :title="safeContext">{{ safeContext }}</span>
       </div>
-      <button v-if="messages.length" class="btn btn-ghost btn-sm" @click="messages = []">清空</button>
+      <button v-if="messages.length" class="btn btn-ghost btn-sm" @click="clearAll">清空</button>
     </div>
 
     <div ref="scroller" class="stream">
@@ -366,13 +439,14 @@ onBeforeUnmount(() => controller?.abort())
         v-model="input"
         class="textarea"
         :rows="compact ? 2 : 2"
-        maxlength="500"
         :disabled="!auth.isLogin"
         :placeholder="auth.isLogin ? '问点什么…… Enter 发送，Shift + Enter 换行' : '登录后可以提问'"
         @keydown="onKeydown"
       ></textarea>
       <div class="actions">
-        <span class="counter">{{ input.length }}/500</span>
+        <span class="counter" :class="{ 'counter--long': input.length > 5000 }">
+          {{ input.length }} 字{{ input.length > 5000 ? ' · 长文本，回答可能稍慢' : '' }}
+        </span>
         <button v-if="sending" class="btn btn-ghost btn-sm" @click="stop">停止</button>
         <button class="btn btn-primary btn-sm" :disabled="sending || !input.trim() || !auth.isLogin" @click="send()">发送</button>
       </div>
@@ -468,9 +542,11 @@ h4.heading { font-size: .95rem; }
 .job-link:hover { text-decoration: underline; }
 
 .composer { border-top: 1px solid var(--fern); padding-top: 10px; }
-.composer .textarea { min-height: 56px; resize: none; }
+.composer .textarea { min-height: 56px; max-height: 220px; resize: none; }
 .actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 8px; }
 .counter { margin-right: auto; color: var(--text-faint); font-size: 11.5px; }
+/* 长文本只做提醒，不拦发送：上限在服务端，前端不该替用户做决定 */
+.counter--long { color: var(--firefly-soft); }
 .gate { color: var(--text-faint); font-size: 12.5px; margin-bottom: 8px; }
 .gate-link { color: var(--firefly-soft); }
 .gate-link:hover { text-decoration: underline; }

@@ -135,10 +135,14 @@ services:
       REDIS_PORT: "6379"
       # 大模型密钥（硅基流动），缺省为空时应用仍可启动，只是问答接口不可用
       SILICONFLOW_API_KEY: ${SILICONFLOW_API_KEY:-}
+      # 岗位方向关键词表走挂载的配置文件，改词后 restart 即生效，不用重建镜像
+      FERRY_AI_JOB_KEYWORDS: file:/app/config/job-category-keywords.json
       TZ: Asia/Shanghai
     volumes:
       # 用户上传的简历落在卷里，容器重建不丢
       - uploads-data:/app/uploads
+      # 岗位关键词表（只读挂载）：把「调词」从「改代码重新构建」降级成「改文件重启」
+      - ./config:/app/config:ro
     healthcheck:
       # /api/course/list 是公开接口，不需要 token，适合做存活探测
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/api/course/list > /dev/null || exit 1"]

@@ -287,6 +287,25 @@ S2-C 做成**异步 + 内存态进度**（`KnowledgeRebuildJob`），接口立�
 再重跑。另外 Git Bash 会把 `/assistant` 这样的参数当路径转换，
 跑 node 脚本前先 `export MSYS_NO_PATHCONV=1`。
 
+### 18. 三个限制叠在一起，追问功能等于摆设
+
+用户反馈「追问不好用」。查下来不是模型的问题，是三处硬限制叠在一起：
+
+1. `AssistantChatDTO.Turn.content` 有 `@Size(max = 1000)`——
+   **只要上一轮回答超过 1000 字，下一句追问直接报「单条历史不能超过 1000 字」**。
+   这是真 bug：助教正常回答 600~1700 字，等于问两轮必炸一次。
+2. `question` 有 `@Size(max = 500)`，用户贴一段代码或报错就被拦。
+3. `history` 只允许 8 条、前端 `.slice(-8)`，稍长一点的对话开头就被切掉。
+
+现在：提问上限改由 `ferry.ai.max-question-chars`（默认 2 万）控制并在服务层校验；
+历史单条放宽到 8000 字；总预算 `history-char-budget` 默认 12000 字，
+**超出时从最旧的丢、保留最近的**；前端保留 10 轮，并把会话按 scope+context 存进
+sessionStorage，切页面回来还能接着问。
+
+**教训**：参数校验的上限要跟真实数据对齐。1000 字这个数字看起来「很宽松」，
+但助教的正常输出就在 600~1700 字之间，等于给最常用的功能埋了一颗必炸的雷。
+加限制前先问一句：这个字段的**正常值域**是多少？
+
 ## 六、目录结构
 
 ```
@@ -343,6 +362,16 @@ python scripts/eval_assistant.py
 
 实测基线：检索 + 重排 0.7~0.8s 出引用，首字 2~4s，一次完整回答 4~9s；
 纯拒答 1.3s（不调生成模型）。
+
+**可调参数**（都在 `application.properties`，带默认值）：
+
+| 配置项 | 默认 | 作用 |
+|---|---|---|
+| `ferry.ai.max-question-chars` | 20000 | 单次提问上限，超了提示分段。是模型上下文决定的保护线，不是产品限制 |
+| `ferry.ai.history-char-budget` | 12000 | 历史总字符预算，超出时**从最旧的丢** |
+| `ferry.ai.job-keywords` | `file:./config/job-category-keywords.json` | 岗位方向词表，docker 里覆盖成 `/app/config/...` |
+| `ferry.ai.job-sync-cron` | `0 0 3 * * ?` | 岗位同步定时任务 |
+| `ferry.ai.job-sync-enabled` | `true` | 定时同步开关 |
 
 数据现状：50 个在架岗位 / 9 家公司；知识库 87 篇文档（37 课程 + 50 岗位）/ 265 个分块。
 
@@ -414,6 +443,8 @@ python scripts/eval_assistant.py
 | 知识库内容 | `backend/src/main/resources/db/knowledge_seed.sql`（37 章，LLM 生成） |
 | AI 配置 | `application.properties` 的 `spring.ai.*` 与 `ferry.ai.*` 段 |
 | 问答提示词与拒答 | `seb/ai/service/impl/AssistantServiceImpl` |
+| 岗位方向词表（可改配置） | `config/job-category-keywords.json` + `seb/ai/service/JobCategoryDictionary` |
+| 岗位定时同步 | `seb/ai/service/JobKnowledgeSyncJob`（`@Scheduled`，需 `@EnableScheduling`） |
 | 检索与重排 | `seb/ai/service/impl/KnowledgeRetrievalServiceImpl`、`RerankServiceImpl` |
 | 向量库 schema | `seb/ai/config/VectorStoreConfig`（改 metadata 字段要重建索引） |
 | 重建索引 | `seb/ai/service/KnowledgeRebuildJob` |

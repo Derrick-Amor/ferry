@@ -1,0 +1,60 @@
+{
+  "comment": [
+    "岗位方向关键词表：把用户问句里的方向词映射成 job_category。",
+    "匹配规则：按本数组顺序逐条看，第一个命中的即生效（顺序就是优先级）。",
+    "  - 「数据库」必须排在「数据」前面，否则会被宽泛的「数据」抢走；",
+    "  - 「数据治理」「数据分析」同理，都要排在「数据」前面。",
+    "改完只需要重启后端容器即可生效，不用重新构建镜像：",
+    "  docker compose restart backend",
+    "每加一个关键词，请同时往 scripts/eval_assistant.py 补一条「它可能误伤什么」的反例，",
+    "否则宽词会把拒答兜底悄悄掏空（历史教训：加「设计」之后，「芯片设计」被当成设计岗）。"
+  ],
+  "keywords": [
+    { "keyword": "数据库", "categories": ["数据存储"] },
+    { "keyword": "dba", "categories": ["数据存储"] },
+    { "keyword": "大数据", "categories": ["大数据"] },
+    { "keyword": "数仓", "categories": ["大数据"] },
+    { "keyword": "数据治理", "categories": ["数据治理"] },
+    { "keyword": "数据分析", "categories": ["数据分析"] },
+    { "keyword": "分析师", "categories": ["数据分析"] },
+    { "keyword": "后端", "categories": ["后端开发"] },
+    { "keyword": "服务端", "categories": ["后端开发"] },
+    { "keyword": "java", "categories": ["后端开发"] },
+    { "keyword": "前端", "categories": ["前端开发"] },
+    { "keyword": "vue", "categories": ["前端开发"] },
+    { "keyword": "react", "categories": ["前端开发"] },
+    { "keyword": "移动端", "categories": ["移动开发"] },
+    { "keyword": "安卓", "categories": ["移动开发"] },
+    { "keyword": "android", "categories": ["移动开发"] },
+    { "keyword": "ios", "categories": ["移动开发"] },
+    { "keyword": "测试", "categories": ["测试"] },
+    { "keyword": "qa", "categories": ["测试"] },
+    { "keyword": "运维", "categories": ["运维"] },
+    { "keyword": "sre", "categories": ["运维"] },
+    { "keyword": "算法", "categories": ["算法"] },
+    { "keyword": "机器学习", "categories": ["算法"] },
+    { "keyword": "全栈", "categories": ["全栈"] },
+    { "keyword": "嵌入式", "categories": ["嵌入式"] },
+    {
+      "keyword": "设计师",
+      "categories": ["设计"],
+      "note": "刻意不写「设计」：它会把「芯片设计」「架构设计」当成设计岗，实测会让拒答率下降"
+    },
+    { "keyword": "ui", "categories": ["设计"] },
+    { "keyword": "ux", "categories": ["设计"] },
+    { "keyword": "交互设计", "categories": ["设计"] },
+    { "keyword": "售前", "categories": ["售前"] },
+    { "keyword": "实施", "categories": ["实施"] },
+    { "keyword": "技术支持", "categories": ["技术支持"] },
+    { "keyword": "产品", "categories": ["产品"] },
+    { "keyword": "运营", "categories": ["运营"] },
+    { "keyword": "大模型", "categories": ["人工智能"] },
+    { "keyword": "人工智能", "categories": ["人工智能"] },
+    { "keyword": "ai", "categories": ["人工智能"] },
+    {
+      "keyword": "数据",
+      "categories": ["大数据", "数据分析", "数据存储"],
+      "note": "最宽泛的一条，必须排在最后，前面更具体的词都没命中时才用它"
+    }
+  ]
+}

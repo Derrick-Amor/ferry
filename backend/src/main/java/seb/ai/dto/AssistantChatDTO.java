@@ -28,7 +28,6 @@ public class AssistantChatDTO {
 
     /** 问题 */
     @NotBlank(message = "问题不能为空")
-    @Size(max = 500, message = "问题不能超过 500 字")
     private String question;
 
     /**
@@ -47,8 +46,8 @@ public class AssistantChatDTO {
     @Size(max = 60, message = "场景提示不能超过 60 字")
     private String context;
 
-    /** 历史对话，按时间正序；最多 8 条（4 轮） */
-    @Size(max = 8, message = "只能携带最近 4 轮对话")
+    /** 历史对话，按时间正序；最多 24 条（12 轮） */
+    @Size(max = 24, message = "只能携带最近 12 轮对话")
     @Valid
     private List<Turn> history;
 
@@ -62,8 +61,14 @@ public class AssistantChatDTO {
         @Pattern(regexp = "user|assistant", message = "role 只能是 user 或 assistant")
         private String role;
 
-        /** 内容 */
-        @Size(max = 1000, message = "单条历史不能超过 1000 字")
+        /**
+         * 内容。
+         *
+         * <p>这个上限是传输层的保护（防止单条塞进几 MB），不是产品限制：
+         * 正常一轮问答远到不了 8000 字。真正的裁剪在服务端按总字符预算做，
+         * 见 {@code AssistantServiceImpl#toMessages}。
+         */
+        @Size(max = 8000, message = "单条历史不能超过 8000 字")
         private String content;
     }
 }

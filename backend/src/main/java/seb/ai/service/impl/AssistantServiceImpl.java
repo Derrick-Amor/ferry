@@ -17,6 +17,7 @@ import seb.ai.service.AssistantService;
 import seb.ai.service.JobQueryParser;
 import seb.ai.service.KnowledgeRetrievalService;
 import seb.ai.vo.CitationVO;
+import seb.common.BusinessException;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -87,8 +88,23 @@ public class AssistantServiceImpl implements AssistantService {
     @Value("${ferry.ai.chat-model:Qwen/Qwen2.5-7B-Instruct}")
     private String chatModel;
 
+    /** 单次提问的字符上限。不是产品限制，是模型上下文决定的保护线 */
+    @Value("${ferry.ai.max-question-chars:20000}")
+    private int maxQuestionChars;
+
+    /** 历史对话的总字符预算，超出时丢弃更早的轮次 */
+    @Value("${ferry.ai.history-char-budget:12000}")
+    private int historyCharBudget;
+
     @Override
     public Session prepare(AssistantChatDTO dto) {
+        // 长度保护放在这里而不是 DTO 注解上：上限要能配置，
+        // 而 Bean Validation 的注解只能写常量。
+        String question = dto.getQuestion();
+        if (question != null && question.length() > maxQuestionChars) {
+            throw new BusinessException("单次提问过长（上限 " + maxQuestionChars
+                    + " 字），请分段提问");
+        }
         String scope = dto.getScope();
         if (AssistantChatDTO.SCOPE_JOB.equals(scope)) {
             return prepareJob(dto);
@@ -144,8 +160,11 @@ public class AssistantServiceImpl implements AssistantService {
                 .append("3. 学生问概念（多态、闭包、索引、依赖注入）时，讲清「为什么」和「什么时候用」，")
                 .append("不要只背定义。\n")
                 .append("4. 用中文。长度看问题难度：概念解释 200~500 字，代码题可以更长。\n")
-                .append("5. 不要写「根据资料」「综上所述」这类套话。\n")
-                .append("6. 问题与编程学习、求职无关时，礼貌地把话题带回来，不要长篇闲聊。\n");
+                .append("5. 用户可能在追问上一轮（「那它呢」「再举个例子」「刚才那个说的不对」），")
+                .append("先结合上文判断他指的是什么再回答；上文里没有的信息不要假装记得，")
+                .append("不确定就问他指的是哪一段。\n")
+                .append("6. 不要写「根据资料」「综上所述」这类套话。\n")
+                .append("7. 问题与编程学习、求职无关时，礼貌地把话题带回来，不要长篇闲聊。\n");
         if (context != null) {
             sb.append("\n背景：用户当前在学「").append(context)
                     .append("」。回答时可以结合这个背景挑重点，但不必强行联系。\n");
@@ -303,13 +322,35 @@ public class AssistantServiceImpl implements AssistantService {
      */
     private List<Message> toMessages(List<AssistantChatDTO.Turn> history, boolean stripCitations) {
         List<Message> messages = new ArrayList<>();
-        if (history == null) {
+        if (history == null || history.isEmpty()) {
             return messages;
         }
-        for (AssistantChatDTO.Turn turn : history) {
+
+        // 从最新一条往前收，累计超过预算就停手：丢掉的是最老的上下文，
+        // 而不是简单砍数组头——那样会把「刚刚才说过的话」砍掉，追问直接断片。
+        List<AssistantChatDTO.Turn> kept = new ArrayList<>();
+        int used = 0;
+        for (int i = history.size() - 1; i >= 0; i--) {
+            AssistantChatDTO.Turn turn = history.get(i);
             if (turn == null || turn.getContent() == null || turn.getContent().isBlank()) {
                 continue;
             }
+            int len = turn.getContent().length();
+            // kept 为空时无条件收下：宁可超一点预算，也不能把最后一轮丢了
+            if (!kept.isEmpty() && used + len > historyCharBudget) {
+                break;
+            }
+            used += len;
+            kept.add(turn);
+        }
+        if (kept.size() < history.size()) {
+            log.debug("[assistant] 历史按预算裁剪：{} 条 → {} 条（{} 字）",
+                    history.size(), kept.size(), used);
+        }
+        // 收的时候是倒序，还原成时间正序
+        java.util.Collections.reverse(kept);
+
+        for (AssistantChatDTO.Turn turn : kept) {
             String content = turn.getContent().trim();
             if ("assistant".equals(turn.getRole())) {
                 String text = stripCitations ? content.replaceAll("\\[\\d{1,2}]", "").trim() : content;
