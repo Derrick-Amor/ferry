@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { study, saveProgress } from '@/api/course'
 import { toast } from '@/utils/toast'
+import AssistantDock from '@/components/AssistantDock.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -90,6 +91,9 @@ async function markDone() {
         </div>
       </aside>
     </div>
+
+    <!-- 课程学习页的浮标走学习答疑：课程名作为背景提示，模型讲的时候能对上正在学的内容 -->
+    <AssistantDock scope="tutor" :context="data.course?.courseName || ''" />
   </div>
 </template>
 

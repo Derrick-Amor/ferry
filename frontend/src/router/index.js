@@ -10,6 +10,7 @@ const routes = [
   { path: '/course/apply', component: () => import('@/views/course/CourseApply.vue'), meta: { requiresAuth: true, roles: [1] } },
   { path: '/course/study/:id', component: () => import('@/views/course/CourseStudy.vue'), meta: { requiresAuth: true, roles: [0] } },
   { path: '/course/:id', component: () => import('@/views/course/CourseDetail.vue') },
+  { path: '/assistant', component: () => import('@/views/assistant/AssistantPage.vue'), meta: { requiresAuth: true } },
   { path: '/job', component: () => import('@/views/job/JobList.vue') },
   { path: '/job/apply', component: () => import('@/views/job/JobApply.vue'), meta: { requiresAuth: true, roles: [1] } },
   { path: '/job/applicants', component: () => import('@/views/job/JobApplicants.vue'), meta: { requiresAuth: true, roles: [1] } },

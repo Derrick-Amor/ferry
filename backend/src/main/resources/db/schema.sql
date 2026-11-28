@@ -395,6 +395,7 @@ CREATE TABLE `knowledge_doc` (
   `source_type` tinyint NOT NULL COMMENT '来源:1课程章节 2职位描述 3上传文档',
   `course_id` bigint unsigned DEFAULT NULL COMMENT '关联课程ID,可空',
   `chapter_id` bigint unsigned DEFAULT NULL COMMENT '关联章节ID,可空',
+  `job_id` bigint unsigned DEFAULT NULL COMMENT '关联职位ID,可空(来源为职位描述时填写)',
   `content_hash` char(64) DEFAULT NULL COMMENT '内容SHA-256,用于判断是否需要重建索引',
   `chunk_count` int NOT NULL DEFAULT '0' COMMENT '分块数量',
   `status` tinyint NOT NULL DEFAULT '1' COMMENT '状态:0禁用 1启用',
@@ -403,8 +404,10 @@ CREATE TABLE `knowledge_doc` (
   PRIMARY KEY (`id`),
   KEY `idx_knowledge_doc_course` (`course_id`),
   KEY `idx_knowledge_doc_chapter` (`chapter_id`),
+  KEY `idx_knowledge_doc_job` (`job_id`),
   KEY `idx_knowledge_doc_source` (`source_type`),
   KEY `idx_knowledge_doc_hash` (`content_hash`),
+  CONSTRAINT `fk_knowledge_doc_job` FOREIGN KEY (`job_id`) REFERENCES `job` (`id`) ON DELETE CASCADE,
   CONSTRAINT `chk_knowledge_doc_source_type` CHECK (`source_type` in (1,2,3)),
   CONSTRAINT `chk_knowledge_doc_status` CHECK (`status` in (0,1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='知识文档元数据表';
@@ -430,6 +433,6 @@ CREATE TABLE `knowledge_chunk` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='知识分块表';
 
 -- ============================================================================
--- Schema 结束：共 17 张表、24 个外键约束、26 个 CHECK 约束
+-- Schema 结束：共 17 张表、25 个外键约束、26 个 CHECK 约束
 -- 下一步：执行 data.sql 灌入演示数据
 -- ============================================================================

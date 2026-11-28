@@ -44,6 +44,9 @@ public class KnowledgeDoc {
     /** 关联章节ID，可空 */
     private Long chapterId;
 
+    /** 关联职位ID，可空（来源为职位描述时填写） */
+    private Long jobId;
+
     /** 内容 SHA-256（64 位十六进制），用于判断内容是否变化、是否需要重建索引 */
     private String contentHash;
 

@@ -48,3 +48,8 @@ test/perf_tests/results/**
 tmp/
 temp/
 .cache/
+
+# ===== AI 协作工作区的本地记忆 =====
+# .workbuddy/ 存的是协作过程记录（日志、交接），属于本地工作状态，
+# 不是项目产物，不入库
+.workbuddy/

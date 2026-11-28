@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { list } from '@/api/job'
 import JobCard from '@/components/JobCard.vue'
 import Pagination from '@/components/Pagination.vue'
+import AssistantDock from '@/components/AssistantDock.vue'
 import { JOB_CATEGORIES } from '@/utils/options'
 const data = ref({ list: [], total: 0 })
 const q = reactive({ page: 1, size: 9, jobCategory: '', keyword: '' })
@@ -35,6 +36,9 @@ function setCategory(v) { q.jobCategory = v; q.page = 1; load() }
     <div v-else class="empty">暂无职位，换个条件试试</div>
 
     <Pagination :total="data.total" :page="q.page" :size="q.size" @change="change" />
+
+    <!-- 职位页的浮标走岗位咨询：只按系统里在架的职位记录回答 -->
+    <AssistantDock scope="job" />
   </div>
 </template>
 

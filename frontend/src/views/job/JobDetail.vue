@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { detail, collect, apply, aiInterview } from '@/api/job'
 import { list as resumeList, upload as resumeUpload } from '@/api/resume'
+import AssistantDock from '@/components/AssistantDock.vue'
 import { useAuthStore } from '@/store/auth'
 import { toast } from '@/utils/toast'
 
@@ -113,6 +114,9 @@ async function onInterview() {
         </div>
       </div>
     </div>
+
+    <!-- 岗位咨询浮标：职位名带上，模型知道用户问的是哪一个岗位 -->
+    <AssistantDock scope="job" :context="job.jobName || ''" />
   </div>
 </template>
 

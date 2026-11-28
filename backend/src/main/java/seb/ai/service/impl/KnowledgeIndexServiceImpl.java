@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * {@link KnowledgeIndexService} 的实现。
@@ -71,6 +72,11 @@ public class KnowledgeIndexServiceImpl implements KnowledgeIndexService {
      */
     @Override
     public IndexResult rebuildAll() {
+        return rebuildAll(null);
+    }
+
+    @Override
+    public IndexResult rebuildAll(BiConsumer<Integer, KnowledgeDoc> onDoc) {
         long start = System.currentTimeMillis();
         IndexResult total = new IndexResult();
 
@@ -83,6 +89,9 @@ public class KnowledgeIndexServiceImpl implements KnowledgeIndexService {
         int i = 0;
         for (KnowledgeDoc doc : docs) {
             i++;
+            if (onDoc != null) {
+                onDoc.accept(i - 1, doc);
+            }
             IndexResult one = doRebuild(doc);
             total.merge(one);
             log.info("[index] {}/{} docId={} 《{}》 -> 分块 {}，向量 {}",
@@ -203,7 +212,9 @@ public class KnowledgeIndexServiceImpl implements KnowledgeIndexService {
         metadata.put("chunkId", row.getId());
         metadata.put("chunkNo", row.getChunkNo());
         metadata.put("title", doc.getTitle());
-        // courseId 可能为空（上传文档类），统一落 0 避免下游空指针
+        // 来源类型决定「岗位咨询」能不能把课程正文挡在检索之外
+        metadata.put("sourceType", doc.getSourceType() == null ? 1 : doc.getSourceType());
+        // courseId 可能为空（上传文档、职位描述），统一落 0 避免下游空指针
         metadata.put("courseId", doc.getCourseId() == null ? 0L : doc.getCourseId());
         return metadata;
     }

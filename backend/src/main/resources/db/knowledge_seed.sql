@@ -11,6 +11,10 @@
 --   mysql --default-character-set=utf8mb4 -u<user> -p <db_name> < knowledge_seed.sql
 -- ============================================================================
 
+-- 容器 initdb 执行本文件时没有 UTF-8 locale，客户端字符集默认是 latin1，
+-- 中文会经历「latin1 解释 → utf8mb4 存储」的双重编码。这一行不能删。
+SET NAMES utf8mb4;
+
 DELETE FROM `knowledge_doc` WHERE `source_type` = 1;
 
 INSERT INTO `knowledge_doc` (`id`, `title`, `content`, `source_type`, `course_id`, `chapter_id`, `content_hash`, `chunk_count`, `status`) VALUES

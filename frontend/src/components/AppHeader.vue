@@ -16,6 +16,7 @@ async function onLogout() { await auth.logout(); router.push('/') }
         <router-link to="/">首页</router-link>
         <router-link to="/course">课程</router-link>
         <router-link to="/job">职位</router-link>
+        <router-link to="/assistant">问渡口</router-link>
         <template v-if="auth.role === 0">
           <router-link to="/user/my-course">我的课程</router-link>
           <router-link to="/job/my-applications">我的投递</router-link>

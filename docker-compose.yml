@@ -57,6 +57,9 @@ services:
       # 注意目标文件名前缀：initdb.d 按文件名字典序执行，01 必须在 02 之前
       - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/src/main/resources/db/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+      # 课程正文（37 章）。之前只在本地手动导入过，导致 down -v 之后知识库是空的；
+      # 放进 initdb 才能保证「一条命令起完整环境」。
+      - ./backend/src/main/resources/db/knowledge_seed.sql:/docker-entrypoint-initdb.d/03-knowledge-seed.sql:ro
     healthcheck:
       # $$ 是 compose 的转义，实际传给容器 shell 的是 $MYSQL_ROOT_PASSWORD
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
